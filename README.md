@@ -1,312 +1,245 @@
 # RegimeX 📈🤖
 
-## Regime-Aware AI Trading System for Indian Equity Markets
+## Regime-Aware Reinforcement Learning Trading System for Indian Equity Markets
 
-RegimeX is an AI-powered quantitative trading research framework that explores how **market regime awareness** can improve reinforcement learning-based trading strategies.
+RegimeX is an AI-powered quantitative trading research project that investigates whether **market regime awareness can improve reinforcement-learning-based trading strategies** in Indian equity markets.
 
-The project combines **Data Science, Financial Analytics, Reinforcement Learning, and Explainable AI** to build an adaptive trading agent capable of making **Buy / Sell / Hold** decisions based on changing market conditions.
+The system combines:
+
+- Financial Data Science
+- Market Regime Detection
+- Reinforcement Learning
+- Realistic Trading Simulation
+- Explainable AI
+- Backtesting
+
+The ultimate goal is to build a PPO-based trading agent that adapts its decisions according to changing market conditions.
 
 ---
 
-# Research Objective
+# 🎯 Research Objective
 
-Traditional trading models often assume that market behaviour remains constant.
+Financial markets do not behave the same way at all times.
 
-However, financial markets continuously shift between different conditions:
+Market conditions can shift between:
 
-- Stable markets
-- Trending markets
-- High volatility periods
-- Uncertain or bearish phases
+- Normal/stable periods
+- Bearish periods
+- Trending periods
+- High-volatility periods
 
 RegimeX investigates:
 
-> Can a regime-aware Reinforcement Learning trading agent achieve better risk-adjusted performance compared to regime-blind trading strategies?
+> **Can a regime-aware reinforcement learning agent make better trading decisions than a regime-blind strategy?**
 
 ---
 
-# System Pipeline
+# 🧠 System Pipeline
 
-```
-Stock Market Data (NSE)
-            |
-            ↓
-Data Collection & Cleaning
-            |
-            ↓
+```text
+Historical NSE Stock Data
+          ↓
+Data Cleaning
+          ↓
 Exploratory Data Analysis
-            |
-            ↓
+          ↓
 Financial Feature Engineering
-            |
-            ↓
-Market Behaviour Analysis
-            |
-            ↓
-Regime Detection
-            |
-            ↓
-Regime-Aware Trading Environment
-            |
-            ↓
-PPO Reinforcement Learning Agent
-            |
-            ↓
-Explainable AI (SHAP)
-            |
-            ↓
-Backtesting & Performance Evaluation
-```
+          ↓
+Daily Returns
+          ↓
+Rolling Volatility
+          ↓
+Hurst Exponent
+          ↓
+Change Point Detection
+          ↓
+Market Regime Detection
+          ↓
+Regime Interpretation
+          ↓
+Trading Environment
+          ↓
+Transaction Costs
+          ↓
+Dynamic Slippage
+          ↓
+Dynamic Market Impact
+          ↓
+Reward Function
+          ↓
+Gymnasium Environment
+          ↓
+PPO Agent
+          ↓
+SHAP Explainability
+          ↓
+Backtesting
+          ↓
+Performance Evaluation
 
----
-
-# Current Implementation Status ✅
-
-## 1. Data Collection
-
-- Collected historical NSE stock data using Yahoo Finance API
-- Initial stocks:
-
-```
+📊 Data
+Historical Indian equity market data is collected using Yahoo Finance.
+Initial stocks:
 RELIANCE
 TCS
 HDFCBANK
 ICICIBANK
 INFY
-```
+Current development and environment testing primarily use:
+RELIANCE
+Historical period:
+2015-01-01 → 2025-12-31
+Data contains:
+Open
+High
+Low
+Close
+Adjusted Close
+Volume
+🔧 Feature Engineering
+RegimeX currently creates the following features.
+Daily Return
+Measures the percentage price movement between consecutive trading days.
+Daily Return =
+(Current Price - Previous Price) / Previous Price
+Rolling Volatility
+Measures recent market uncertainty using rolling standard deviation of returns.
+Higher volatility indicates larger and less stable price movements.
+Hurst Exponent
+The Hurst exponent is used to study the persistence of price behaviour.
+H < 0.5  → Mean-reverting behaviour
 
-Data includes:
+H ≈ 0.5  → Random-walk-like behaviour
 
-- Open Price
-- High Price
-- Low Price
-- Close Price
-- Adjusted Close
-- Trading Volume
-
----
-
-## 2. Data Cleaning
-
-Performed:
-
-- Missing value handling
-- Duplicate removal
-- Date formatting
-- Data validation
-- Structured processed datasets
-
----
-
-## 3. Exploratory Data Analysis
-
-Performed financial analysis:
-
-- Price movement analysis
-- Return distribution analysis
-- Daily return statistics
-- Volatility analysis
-
----
-
-## 4. Feature Engineering
-
-Created financial indicators:
-
-### Daily Returns
-
-Measures daily price movement:
-
-```
-Return = (Today's Price - Yesterday's Price) / Yesterday's Price
-```
-
----
-
-### Rolling Volatility
-
-Measures market uncertainty using rolling standard deviation.
-
----
-
-### Hurst Exponent
-
-Measures market behaviour:
-
-- H < 0.5 → Mean reverting behaviour
-- H ≈ 0.5 → Random behaviour
-- H > 0.5 → Trending behaviour
-
----
-
-# Market Regime Detection
-
-RegimeX uses unsupervised learning to identify different market states.
-
-## Method
-
-KMeans Clustering
-
-Input Features:
-
-```
+H > 0.5  → Persistent / trending behaviour
+🔍 Change Point Detection
+RegimeX uses change point detection to identify points where the statistical behaviour of the market changes.
+The project currently uses:
+ruptures
+Change points provide additional information about structural changes in market behaviour.
+📈 Market Regime Detection
+The engineered features are used to identify different market conditions.
+Input features:
 Daily Return
 Rolling Volatility
 Hurst Exponent
-```
+The current implementation uses unsupervised clustering to group observations into statistically similar market states.
+The numerical clusters are interpreted as:
+Regime	Interpretation
+0	Weak Bear
+1	Normal Market
+2	High Volatility
 
-The model identifies statistically similar market conditions.
 
-Detected regimes are interpreted as:
-
-| Regime | Meaning |
-|---|---|
-| Normal Market | Stable trading conditions |
-| Weak Bear | Negative/uncertain market behaviour |
-| High Volatility | Extreme market movements |
-
----
-
-# Reinforcement Learning Trading Agent 🚧
-
-Upcoming implementation:
-
-The trading agent will use:
-
-## Algorithm
-
-PPO (Proximal Policy Optimization)
-
-The agent learns:
-
-```
-Market State
+The exact characteristics of each regime are determined from the historical data rather than assumed beforehand.
+🏦 Trading Environment
+The detected market regimes are passed into a simulated trading environment.
+Starting capital:
+₹100,000
+The environment tracks:
+Cash
+Shares
+Stock price
+Portfolio value
+Market regime
+Trading actions
+Rewards
+🎮 Trading Actions
+The agent has three possible actions:
+0 → HOLD
+1 → BUY
+2 → SELL
+👀 Observation / State
+The current trading environment provides five observations:
+[
+    Daily Return,
+    Rolling Volatility,
+    Hurst Exponent,
+    Market Regime,
+    Holding Status
+]
+Where:
+Holding Status:
+0 → No shares held
+1 → Shares currently held
+💰 Reward Function
+The current reward is based on the change in portfolio value.
+Reward =
+Current Portfolio Value
+-
+Previous Portfolio Value
+Trading costs are reflected in portfolio value and therefore affect the reward.
+💸 Transaction Costs
+The environment includes transaction costs to make trading more realistic.
+Current transaction cost:
+0.1%
+The cost is applied to BUY and SELL transactions.
+📉 Dynamic Slippage
+The environment models execution price differences using volatility-dependent slippage.
+Conceptually:
+Slippage =
+Base Slippage
++
+Slippage Multiplier × Volatility
+BUY trades receive a slightly higher execution price.
+SELL trades receive a slightly lower execution price.
+🌊 Market Impact
+RegimeX also models dynamic market impact.
+The execution price therefore considers:
+Market Price
       ↓
-Trading Action
+Slippage
       ↓
-Reward
+Market Impact
       ↓
-Policy Improvement
-```
+Execution Price
+      ↓
+Transaction Cost
+This creates a more realistic trading environment than assuming every trade executes exactly at the market price.
+🤖 Reinforcement Learning
+The next major component is a PPO agent.
+Algorithm:
+Proximal Policy Optimization (PPO)
+The agent will learn:
+Observe Market State
+        ↓
+Choose Action
+        ↓
+Execute Trade
+        ↓
+Receive Reward
+        ↓
+Update Policy
+        ↓
+Repeat
+🔬 Explainable AI
+SHAP will be used to analyze the trained agent.
+The goal is to understand:
+Why did the agent choose BUY, SELL, or HOLD?
 
-Actions:
-
-```
-0 → Hold
-1 → Buy
-2 → Sell
-```
-
----
-
-# Trading Environment Design
-
-The environment will include:
-
-## State Space
-
-The agent observes:
-
-- Stock price
-- Daily returns
-- Volatility
-- Hurst exponent
-- Market regime
-- Portfolio balance
-- Current holdings
-
-
-## Reward Function
-
-Initial:
-
-- Portfolio returns
-
-Advanced:
-
-- Regime-conditioned reward
-- Risk penalties
-- Market impact cost
-
----
-
-# Explainable AI
-
-To understand trading decisions, SHAP explainability will be integrated.
-
-The system will answer:
-
-> Why did the AI decide to Buy/Sell/Hold?
-
-Example explanations:
-
-- High volatility increased risk
-- Strong trend supported buying
-- Weak momentum caused selling
-
----
-
-# Evaluation Metrics
-
-The final system will be evaluated using:
-
-### Return Metrics
-
-- Total Return
-- Annualized Return
-
-### Risk Metrics
-
-- Sharpe Ratio
-- Sortino Ratio
-- Maximum Drawdown
-
-### Trading Metrics
-
-- Turnover
-- Transaction Cost Impact
-
----
-
-# Technology Stack
-
-## Programming
-
-- Python
-
-## Data Science
-
-- Pandas
-- NumPy
-- Matplotlib
-- Scikit-learn
-
-## Financial Analysis
-
-- Yahoo Finance API
-- Technical Indicators
-
-## Machine Learning
-
-- KMeans Clustering
-- Change Point Detection
-
-## Reinforcement Learning
-
-- Stable-Baselines3
-- PPO
-
-## Explainable AI
-
-- SHAP
-
----
-
-# Project Structure
-
-```
+Potential influential factors include:
+Daily return
+Volatility
+Hurst exponent
+Market regime
+Current holdings
+📊 Evaluation
+The final strategy will be evaluated using:
+Return Metrics
+Total Return
+Annualized Return
+Risk Metrics
+Sharpe Ratio
+Sortino Ratio
+Maximum Drawdown
+Trading Metrics
+Number of Trades
+Turnover
+Transaction Costs
+Slippage Impact
+The trained agent will eventually be compared against appropriate baseline strategies.
+📁 Project Structure
 RegimeX/
-
 │
 ├── data/
 │   ├── raw/
@@ -323,44 +256,152 @@ RegimeX/
 │   ├── regime_features.py
 │   ├── regime_detection.py
 │   ├── regime_interpretation.py
-│   └── add_regime_labels.py
+│   ├── add_regime_labels.py
+│   ├── trading_environment.py
+│   ├── trading_env.py
+│   └── test_trading_env.py
 │
 ├── README.md
-└── requirements.txt
-```
+├── requirements.txt
+└── .gitignore
+🚀 Current Progress
+Completed
+
+Historical data collection
+
+Data cleaning
+
+Data validation
+
+Exploratory Data Analysis
+
+Daily return analysis
+
+Normalized performance analysis
+
+Rolling volatility
+
+Hurst exponent
+
+Change point detection
+
+Regime feature engineering
+
+Market regime detection
+
+Regime interpretation
+
+Final regime-labelled dataset
+
+Trading environment
+
+BUY / HOLD / SELL actions
+
+Portfolio accounting
+
+Reward function
+
+Transaction costs
+
+Dynamic slippage
+
+Dynamic market impact
+
+Gymnasium environment
+
+Environment testing
+In Progress / Upcoming
+
+PPO agent
+
+PPO training
+
+Model evaluation
+
+Baseline comparison
+
+SHAP explainability
+
+Walk-forward backtesting
+
+Risk analysis
+
+Statistical significance testing
+⚙️ Installation
+Clone the repository:
+git clone https://github.com/AnyaK393/RegimeX.git
+cd RegimeX
+Create a virtual environment:
+python -m venv .venv
+Activate it on macOS/Linux:
+source .venv/bin/activate
+Install dependencies:
+pip install -r requirements.txt
+▶️ Running the Project
+Run the individual pipeline stages from the project root.
+Data Collection
+python src/data_collection.py
+Data Cleaning
+python src/data_cleaning.py
+Exploratory Analysis
+python src/eda.py
+Change Point Detection
+python src/change_point_analysis.py
+Feature Engineering
+python src/regime_features.py
+Regime Detection
+python src/regime_detection.py
+Regime Interpretation
+python src/regime_interpretation.py
+Add Market Regime Labels
+python src/add_regime_labels.py
+Test Trading Environment
+python src/trading_environment.py
+Test Gymnasium Environment
+python src/test_trading_env.py
+📓 Notebook
+The main notebook documents the complete research workflow.
+It contains:
+Data
+ ↓
+Cleaning
+ ↓
+EDA
+ ↓
+Feature Engineering
+ ↓
+Regime Detection
+ ↓
+Regime Interpretation
+ ↓
+Trading Environment
+ ↓
+Gymnasium Environment
+The notebook is intended to provide a readable research record, while the Python files contain the reusable implementation.
+
+⚠️ Disclaimer
+RegimeX is an academic and research project.
+It is not financial advice and should not be used as a real-world automated trading system without extensive additional validation, risk controls, and regulatory consideration.
 
 ---
 
-# Future Roadmap
+# 16. One README correction from your old version
 
-- [x] Data Collection
-- [x] Data Cleaning
-- [x] Exploratory Analysis
-- [x] Financial Feature Engineering
-- [x] Hurst Analysis
-- [x] Change Point Detection
-- [x] Market Regime Detection
+Your old README says:
 
-Next:
+> `Stock price, Daily returns, Volatility, Hurst exponent, Market regime, Portfolio balance, Current holdings`
 
-- [ ] Trading Environment
-- [ ] PPO Agent
-- [ ] Dynamic Reward Function
-- [ ] Market Impact Simulation
-- [ ] SHAP Explainability
-- [ ] Walk Forward Backtesting
-- [ ] Statistical Significance Testing
+as the state.
 
----
+That's **not currently accurate**.
 
-# Authors
+Your actual state is:
 
-Team RegimeX
-
----
-
-## Disclaimer
-
-This project is developed for academic and research purposes only.
-
-It is not financial advice and should not be used for real-world trading decisions.
+```text
+[Daily_Return,
+ Rolling_Volatility,
+ Hurst,
+ Regime,
+ Holding_Status]
+So I deliberately corrected that above.
+Also, don't claim PPO, SHAP, or backtesting are completed yet. They're roadmap items. This makes the repo much more credible.
