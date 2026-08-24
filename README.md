@@ -705,12 +705,12 @@ The Python scripts contain the reusable implementation, while the notebook provi
 - [x] Market Impact
 - [x] Gymnasium Environment
 - [x] Environment Testing
-
-## 🚀 Upcoming
-
 - [x] Train / Validation / Test Split
 - [x] PPO Agent
 - [x] PPO Training
+
+## 🚀 Upcoming
+
 - [ ] Backtesting
 - [ ] Buy & Hold Benchmark
 - [ ] Performance Metrics
