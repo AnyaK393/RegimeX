@@ -1,0 +1,33 @@
+# ==========================================
+# RegimeX - AI Trading System
+# ==========================================
+
+# Data Collection & Processing
+numpy
+pandas
+yfinance
+
+# Data Visualization
+matplotlib
+seaborn
+plotly
+
+# Machine Learning
+scikit-learn
+
+# Change Point Detection
+ruptures
+
+# Reinforcement Learning
+gymnasium
+stable-baselines3
+
+# Explainable AI
+shap
+
+# Technical Analysis
+ta
+
+# Jupyter / Notebook Support
+jupyter
+ipykernel

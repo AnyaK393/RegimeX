@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+
+# Data and Models (Do not push large files)
+data/
+models/
+logs/
+
+# IDEs
+.vscode/
+.idea/
+
+# Antigravity
+.gemini/
