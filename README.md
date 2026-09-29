@@ -738,7 +738,7 @@ The Python scripts contain the reusable implementation, while the notebook provi
 
 - [ ] Walk-forward selection of the v3 risk-aversion scale (scripts written: `src/wf_select_v3.py`, `src/wf_select_report.py`)
 - [x] SHAP explanations for the v3 agents (`src/explain_shap_v3.py`)
-- [ ] Final report / paper write-up
+- [x] Final report draft (`docs/REPORT.md`)
 
 ## 📊 Results summary
 
