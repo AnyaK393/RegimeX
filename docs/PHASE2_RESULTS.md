@@ -198,6 +198,39 @@ Normal_Market (+0.13) and **down** in Weak_Bear (-0.12) and High_Volatility (-0.
 opposite of the v1 agent, whose SHAP attribution was almost entirely on Holdings. Figures: `results/figures/shap_*_v3_adaptive_s0.png`,
 `v3_equity_test.png`, `v3_exposure_by_regime_test.png`. This is a single seed; attributions may differ across seeds.
 
+**Walk-forward selection of the risk-aversion scale (no test data used).** To improve v3 without overfitting the test window, the
+single knob `gamma_base` (Normal_Market gamma; ratio 1 : 3 : 6 kept) was chosen on expanding-window folds for test years 2019-2023
+(all before 2024-06), grid {0.75, 1.5, 3.0}, adaptive and blind agents, 2 seeds, 300k steps (`src/wf_select_v3.py`, `src/wf_select_report.py`;
+60 jobs, all reported in `results/v3_select_summary/`). The rule was fixed beforehand: pick the gamma with the best mean adaptive
+portfolio Sharpe, keeping 3.0 unless another value wins by more than 0.05.
+
+| gamma_base | Adaptive mean Sharpe | Blind mean Sharpe | Adaptive - blind | Folds adaptive wins |
+|---|---|---|---|---|
+| 0.75 | 0.844 | 0.920 | -0.076 | 1 / 5 |
+| 1.5 | 0.824 | 0.933 | -0.109 | 1 / 5 |
+| 3.0 | 0.739 | 0.703 | +0.037 | 2 / 5 |
+
+Buy & Hold and Constant 50 % averaged Sharpe 1.06 and 1.05 on these folds, above every grid point. The rule selected **gamma_base = 0.75**
+(margin 0.105 > 0.05). Two cautions visible in the grid: lowering gamma improved the blind agent as much as the adaptive one, so the
+adaptive-versus-blind gap did not widen, and the small positive gap at gamma 3.0 comes entirely from one fold (2019: blind Sharpe 0.17).
+
+**Test result for the pre-selected gamma_base = 0.75** (retrained on the standard train split, 3 seeds each, evaluated once):
+
+| Strategy (five-stock portfolio, test) | Return | Sharpe | Max drawdown |
+|---|---|---|---|
+| Buy & Hold | +10.2 % | 0.52 | -15.3 % |
+| Constant 50 % | +5.4 % | 0.50 | -8.1 % |
+| PPO-v3 regime-blind (gamma 0.75) | +1.6 % | 0.12 | -11.2 % |
+| PPO-v3 regime-adaptive (gamma 0.75) | +1.1 % | 0.13 | -11.8 % |
+
+Adaptive minus blind Sharpe: -0.04 [-0.33, +0.24], p = 0.79; drawdown difference p = 0.61. Both agents are significantly worse than
+Buy & Hold and than Constant 50 % on Sharpe (p < 0.001). The one clean regime effect: in High_Volatility the adaptive agent holds
+significantly less than the blind one (0.48 vs 0.56, p = 0.004), the hypothesised direction, but it does not translate into a
+return or drawdown advantage. The tuned setting is also worse on test than the default (adaptive Sharpe 0.13 vs 0.18, drawdown -11.8 % vs -7.8 %),
+i.e. selection on 2019-2023 folds did not transfer, consistent with weak, noisy effects. **Conclusion: no configuration tried shows a
+statistically supported out-of-sample benefit of regime-conditioned reward over an equal-average-risk-aversion blind agent.** Both the
+default (gamma 3.0) and the selected (gamma 0.75) results are reported; the pre-registered choice is the latter.
+
 ## 11. Reproducing
 
 ```
