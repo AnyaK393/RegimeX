@@ -92,9 +92,47 @@ the scaled-observation variant, which did not improve results.
 - The validation split has only 9 High_Volatility days, so validation regime tests (and their bootstrap intervals) are not meaningful.
 - Walk-forward PPO used 150k steps and one seed per fold; it is a robustness check, not a full replication.
 - Seed-to-seed variance is large (Sharpe std about 0.1-0.2), comparable to the effects being measured.
-- Natural next step: pool all five stocks to multiply training data (see `docs/` for status).
+- The base Normal_Market / Weak_Bear labels for RELIANCE come from a KMeans fitted on the full 2015-2025 sample, so only the High_Volatility override is strictly causal. The four additional stocks (section 9) fit KMeans on the train period only.
+- Pooling five stocks (section 9) was tried to address the small-data problem; the conclusion did not change.
 
-## 9. Reproducing
+## 9. Extension: agents trained on all five stocks
+
+`src/build_multistock.py` builds regime datasets for TCS, HDFCBANK, ICICIBANK and
+INFY (KMeans fitted on the train period only, plus the same causal rolling-P90
+High_Volatility rule). `src/train_pooled.py` trains one agent on the pooled train
+splits (~9,150 bars, a random stock per episode, 1M steps, 3 seeds per variant).
+`src/evaluate_pooled.py` tests on every stock's held-out test split
+(2024-06-03 to 2025-12-31): 1,965 stock-days, of which 205 are High_Volatility.
+
+Equal-weight five-stock portfolio, test:
+
+| Strategy | Total return | Sharpe |
+|---|---|---|
+| Buy & Hold | +10.2% | 0.52 |
+| ARIMA | -39.4% | -3.92 |
+| XGBoost (pooled) | -23.4% | -1.67 |
+| PPO regime-blind (raw) | +2.7% | 0.21 |
+| PPO regime-adaptive (raw) | +0.0% | 0.02 |
+| PPO regime-blind (scaled) | +3.1% | 0.25 |
+| PPO regime-adaptive (scaled) | +6.2% | 0.57 |
+
+Adaptive minus blind, paired block bootstrap on stacked stock-days:
+
+| Variant | Sharpe diff [95% CI] | p | High_Volatility mean daily bp diff | p |
+|---|---|---|---|---|
+| raw | -0.16 [-0.49, +0.13] | 0.31 | -9.4 | 0.001 |
+| scaled | +0.17 [-0.07, +0.42] | 0.18 | -4.4 | 0.19 |
+
+Findings: with pooled data and scaled inputs the adaptive agent roughly matches
+Buy & Hold on risk-adjusted terms (Sharpe diff -0.01, p = 0.88) and is the best
+PPO variant, but it is not significantly better than the regime-blind agent, and
+no PPO variant beats Buy & Hold. On High_Volatility days every PPO variant
+earns significantly less than Buy & Hold, because the test period's volatile
+stretches were rallies and the agents were not fully invested. The
+regime-conditioned reward therefore did not produce a demonstrable out-of-sample
+advantage on either one stock or five.
+
+## 10. Reproducing
 
 ```
 python src/regime_relabel.py
@@ -102,4 +140,7 @@ python src/train_ppo.py --seed 0            # adaptive; add --blind, --scaled as
 python src/evaluate.py                       # tables, bootstrap, figures -> results/
 python src/walk_forward.py
 python src/explain_shap.py
+python src/build_multistock.py                # other four stocks
+python src/train_pooled.py --scaled --seed 0  # add --blind for the blind agent
+python src/evaluate_pooled.py
 ```
