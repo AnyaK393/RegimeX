@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from data_split import get_splits
 from trading_env import obs_stats_from
-from exposure_env import RegimeXExposureEnv, blind_gamma_from, EXPOSURES
+from exposure_env import RegimeXExposureEnv, blind_gamma_from, gamma_config, EXPOSURES
 from strategies import rollout, ppo_policy
 from metrics import (
     summarize, daily_returns, paired_bootstrap, sharpe, total_return,
@@ -40,9 +40,12 @@ MODEL_ROOT = "models/ppo_pooled_v3"
 TARGET_VOL = 0.01
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--gamma-base", type=float, default=3.0)
 parser.add_argument("--split", choices=["validation", "test"], default="test")
 args = parser.parse_args()
-OUT = f"results/v3_{args.split}"
+GSUF = "" if args.gamma_base == 3.0 else f"g{args.gamma_base}"
+MODEL_ROOT = f"models/ppo_pooled_v3{GSUF}"
+OUT = f"results/v3{GSUF}_{args.split}"
 os.makedirs(OUT, exist_ok=True)
 
 
@@ -71,12 +74,14 @@ def main():
     splits = {t: get_splits(d, verbose=False) for t, d in data.items()}
     train_dfs = [s[0] for s in splits.values()]
     stats = obs_stats_from(pd.concat(train_dfs))
-    bg = blind_gamma_from(train_dfs)
+    cfg = gamma_config(args.gamma_base)
+    bg = blind_gamma_from(train_dfs, cfg)
     models = load_models()
     print("models:", {k: len(v) for k, v in models.items()}, f"| blind gamma {bg:.3f} | split={args.split}")
 
     idx = {"validation": 1, "test": 2}[args.split]
-    env_kw = dict(env_cls=RegimeXExposureEnv, scaled_obs=True, obs_stats=stats, blind_gamma=bg)
+    env_kw = dict(env_cls=RegimeXExposureEnv, scaled_obs=True, obs_stats=stats,
+                  gamma_config=cfg, blind_gamma=bg)
 
     rows, series, expo, regimes = [], {}, {}, {}
     for t in TICKERS:

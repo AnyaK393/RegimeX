@@ -1,0 +1,20 @@
+{
+ "gamma_base": 1.5,
+ "kind": "adaptive",
+ "year": 2020,
+ "seed": 1,
+ "blind_gamma": 3.8684070796460177,
+ "port_sharpe": 0.9316052126570459,
+ "port_return": 0.10523827172608202,
+ "port_maxdd": -0.13276319129038971,
+ "exposure": {
+  "Normal_Market": 0.6745155948372825,
+  "Weak_Bear": 0.33819155436197834,
+  "High_Volatility": 0.052194527985232705
+ },
+ "n_days": {
+  "Normal_Market": 372,
+  "Weak_Bear": 540,
+  "High_Volatility": 338
+ }
+}

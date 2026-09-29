@@ -1,0 +1,20 @@
+{
+ "gamma_base": 3.0,
+ "kind": "adaptive",
+ "year": 2023,
+ "seed": 1,
+ "blind_gamma": 7.715290356952584,
+ "port_sharpe": 0.5271350263876154,
+ "port_return": 0.05090273168427517,
+ "port_maxdd": -0.08667849912240211,
+ "exposure": {
+  "Normal_Market": 0.9925160454006345,
+  "Weak_Bear": 0.645447664030479,
+  "High_Volatility": 0.23513441730304152
+ },
+ "n_days": {
+  "Normal_Market": 437,
+  "Weak_Bear": 747,
+  "High_Volatility": 36
+ }
+}

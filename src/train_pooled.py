@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from data_split import get_splits
 from trading_env import obs_stats_from
 from pooled_env import PooledTradingEnv
-from exposure_env import PooledExposureEnv, blind_gamma_from
+from exposure_env import PooledExposureEnv, blind_gamma_from, gamma_config
 
 # ============================================================
 # REGIMEX - PPO TRAINING ON THE POOLED FIVE-STOCK TRAIN SET
@@ -25,12 +25,15 @@ parser.add_argument("--blind", action="store_true")
 parser.add_argument("--scaled", action="store_true")
 parser.add_argument("--exposure", action="store_true",
                     help="v3 position-sizing env with mean-variance regime reward")
+parser.add_argument("--gamma-base", type=float, default=3.0,
+                    help="v3 base risk aversion (Normal_Market); Weak_Bear/High_Vol scale 3x/6x")
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--timesteps", type=int, default=1_000_000)
 args = parser.parse_args()
 
 TAG = ("blind" if args.blind else "adaptive") + ("_scaled" if args.scaled else "") + f"_s{args.seed}"
-MODEL_DIR = f"models/ppo_pooled{'_v3' if args.exposure else ''}/{TAG}"
+GSUF = '' if args.gamma_base == 3.0 else f'g{args.gamma_base}'
+MODEL_DIR = f"models/ppo_pooled{'_v3' + GSUF if args.exposure else ''}/{TAG}"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 train_dfs = []
@@ -42,12 +45,13 @@ print(f"Pooled train: {sum(len(d) for d in train_dfs)} bars across {len(train_df
 stats = obs_stats_from(pd.concat(train_dfs)) if args.scaled else None
 
 if args.exposure:
-    bg = blind_gamma_from(train_dfs)
+    cfg = gamma_config(args.gamma_base)
+    bg = blind_gamma_from(train_dfs, cfg)
     print(f"v3 exposure env; regime-blind gamma = {bg:.3f}")
 
     def make():
         return PooledExposureEnv(
-            train_dfs, regime_adaptive=not args.blind, blind_gamma=bg,
+            train_dfs, regime_adaptive=not args.blind, gamma_config=cfg, blind_gamma=bg,
             scaled_obs=args.scaled, obs_stats=stats)
 else:
     def make():

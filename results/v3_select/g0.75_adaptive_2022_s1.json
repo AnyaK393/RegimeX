@@ -1,0 +1,20 @@
+{
+ "gamma_base": 0.75,
+ "kind": "adaptive",
+ "year": 2022,
+ "seed": 1,
+ "blind_gamma": 1.95451197053407,
+ "port_sharpe": -0.2406518376319661,
+ "port_return": -0.04441810686372494,
+ "port_maxdd": -0.1382967951892825,
+ "exposure": {
+  "Normal_Market": 0.7990889814170781,
+  "Weak_Bear": 0.7425605760878344,
+  "High_Volatility": 0.7575008026223645
+ },
+ "n_days": {
+  "Normal_Market": 517,
+  "Weak_Bear": 642,
+  "High_Volatility": 76
+ }
+}
