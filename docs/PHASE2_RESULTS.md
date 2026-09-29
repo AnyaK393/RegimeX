@@ -189,6 +189,15 @@ de-risking in this test window, mainly because the agents are over-cautious (val
 Sharpe 0.73 vs 0.16 for adaptive). Further tuning of gamma or exposure levels on this test window would be overfitting to it; a fair next
 step is to select those on validation or via walk-forward, on more history.
 
+**Explainability of the v3 adaptive agent (SHAP on expected target exposure, seed 0, 399 stratified test observations across the five stocks; `src/explain_shap_v3.py`).**
+Base value 0.45 exposure. Mean |SHAP|: Regime 0.121, Exposure (its current position) 0.106, Rolling_Volatility 0.096,
+Hurst 0.013, Daily_Return 0.010. The agent therefore decides mostly from the regime label, its current position and volatility,
+and ignores the previous day's return and the Hurst exponent. By regime, the regime input pushes exposure **up** in
+Normal_Market (+0.13) and **down** in Weak_Bear (-0.12) and High_Volatility (-0.11), and volatility acts the same way
+(up in calm markets, down when volatile). This is the intended behaviour of a regime-aware risk manager, and it is the
+opposite of the v1 agent, whose SHAP attribution was almost entirely on Holdings. Figures: `results/figures/shap_*_v3_adaptive_s0.png`,
+`v3_equity_test.png`, `v3_exposure_by_regime_test.png`. This is a single seed; attributions may differ across seeds.
+
 ## 11. Reproducing
 
 ```
