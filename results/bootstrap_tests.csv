@@ -1,0 +1,101 @@
+split,regime,A,B,stat,diff,ci_low,ci_high,p_value,n
+validation,ALL,PPO regime-adaptive,PPO regime-blind,sharpe,0.6340219085710443,-0.7572588934584724,2.023015998957239,0.376,391
+validation,ALL,PPO regime-adaptive,PPO regime-blind,total_return,0.07242705620808754,-0.08665983076280774,0.2622722140490288,0.402,391
+validation,Normal_Market,PPO regime-adaptive,PPO regime-blind,mean_daily_bp,0.034075083222191715,-5.241453038439584,5.505693165141849,0.9888,200
+validation,Weak_Bear,PPO regime-adaptive,PPO regime-blind,mean_daily_bp,2.9460682259171387,-3.735123929089813,9.3678950906688,0.3624,182
+validation,High_Volatility,PPO regime-adaptive,PPO regime-blind,mean_daily_bp,22.26898951510568,22.26898951510568,22.26898951510568,0.0,9
+validation,ALL,PPO regime-adaptive,Buy & Hold,sharpe,-0.25697779824279976,-0.8721527548008656,0.2678863019140082,0.388,391
+validation,ALL,PPO regime-adaptive,Buy & Hold,total_return,-0.18846354616362548,-0.6843150299018698,0.09610625941062849,0.246,391
+validation,Normal_Market,PPO regime-adaptive,Buy & Hold,mean_daily_bp,-3.688359620333696,-15.469895491487314,7.365961587063472,0.5224,200
+validation,Weak_Bear,PPO regime-adaptive,Buy & Hold,mean_daily_bp,-5.440363117815395,-14.543745308532731,3.541763972783413,0.2364,182
+validation,High_Volatility,PPO regime-adaptive,Buy & Hold,mean_daily_bp,-13.030925624250337,-13.030925624250337,-13.030925624250337,0.0,9
+validation,ALL,PPO regime-adaptive,XGBoost,sharpe,0.5328023837555956,-0.5758446628087758,1.702191195661747,0.3284,391
+validation,ALL,PPO regime-adaptive,XGBoost,total_return,0.0660704981094391,-0.2906454369364641,0.2888043858103099,0.6592,391
+validation,Normal_Market,PPO regime-adaptive,XGBoost,mean_daily_bp,0.03839960734769582,-11.18045109921558,10.14748106512796,0.958,200
+validation,Weak_Bear,PPO regime-adaptive,XGBoost,mean_daily_bp,2.739334735516273,-6.661649665772207,11.550817669805296,0.5388,182
+validation,High_Volatility,PPO regime-adaptive,XGBoost,mean_daily_bp,0.24733318178801866,0.24733318178801866,0.24733318178801866,0.0,9
+validation,ALL,PPO regime-adaptive,ARIMA,sharpe,2.5626175476909805,1.350496553229083,3.980636396681401,0.0,391
+validation,ALL,PPO regime-adaptive,ARIMA,total_return,0.4204086168055804,0.2533004650038814,0.579708187725514,0.0004,391
+validation,Normal_Market,PPO regime-adaptive,ARIMA,mean_daily_bp,11.904706674839296,5.011527004378583,19.166544801050875,0.0004,200
+validation,Weak_Bear,PPO regime-adaptive,ARIMA,mean_daily_bp,12.829620207617467,2.446632380413063,23.886119018099897,0.0168,182
+validation,High_Volatility,PPO regime-adaptive,ARIMA,mean_daily_bp,17.31076846427881,17.31076846427881,17.31076846427881,0.0,9
+validation,ALL,PPO regime-blind,Buy & Hold,sharpe,-0.8909997068138441,-2.338289881181049,0.5650688821940987,0.2276,391
+validation,ALL,PPO regime-blind,Buy & Hold,total_return,-0.260890602371713,-0.9310404598222589,0.16427440153072165,0.2784,391
+validation,Normal_Market,PPO regime-blind,Buy & Hold,mean_daily_bp,-3.722434703555888,-20.165523055127938,12.06309366708718,0.6376,200
+validation,Weak_Bear,PPO regime-blind,Buy & Hold,mean_daily_bp,-8.386431343732534,-23.123415362633022,7.024675619399098,0.2644,182
+validation,High_Volatility,PPO regime-blind,Buy & Hold,mean_daily_bp,-35.29991513935602,-35.29991513935602,-35.29991513935602,0.0,9
+test,ALL,PPO regime-adaptive,PPO regime-blind,sharpe,0.07866361871310423,-0.3236265429718027,0.49152483725695895,0.6992,393
+test,ALL,PPO regime-adaptive,PPO regime-blind,total_return,0.05017077717380314,-0.1325392506124426,0.4155238695511249,0.6856,393
+test,Normal_Market,PPO regime-adaptive,PPO regime-blind,mean_daily_bp,2.3541051525265653,-5.157326103693051,9.963806147295259,0.5312,229
+test,Weak_Bear,PPO regime-adaptive,PPO regime-blind,mean_daily_bp,-5.762067295520792,-15.533072658170354,3.1169972892334714,0.2164,118
+test,High_Volatility,PPO regime-adaptive,PPO regime-blind,mean_daily_bp,17.45975204293219,4.537246626788944,31.09994917372126,0.0052,46
+test,ALL,PPO regime-adaptive,Buy & Hold,sharpe,0.19483514838484733,-0.06310417377844947,0.7011585767202599,0.6728,393
+test,ALL,PPO regime-adaptive,Buy & Hold,total_return,0.06329462685491904,-0.024614682996169233,0.24320337732797487,0.6012,393
+test,Normal_Market,PPO regime-adaptive,Buy & Hold,mean_daily_bp,3.3678233104542468,-0.07129223569747367,10.141020284725972,0.3432,229
+test,Weak_Bear,PPO regime-adaptive,Buy & Hold,mean_daily_bp,0.0468049143949667,-0.07313163467000643,0.16183531604470347,0.4368,118
+test,High_Volatility,PPO regime-adaptive,Buy & Hold,mean_daily_bp,-4.866879089656983,-12.217233032955377,-0.2847618427479926,0.0092,46
+test,ALL,PPO regime-adaptive,XGBoost,sharpe,1.1008436965035548,0.08817318546523359,2.1909879571508535,0.0352,393
+test,ALL,PPO regime-adaptive,XGBoost,total_return,0.2752806160785929,-0.006700684956265007,0.7196289190727473,0.0588,393
+test,Normal_Market,PPO regime-adaptive,XGBoost,mean_daily_bp,6.439303991254899,-4.407563827397277,16.60236902002166,0.2288,229
+test,Weak_Bear,PPO regime-adaptive,XGBoost,mean_daily_bp,7.823811025771613,-6.741537196187403,22.66804536938634,0.3112,118
+test,High_Volatility,PPO regime-adaptive,XGBoost,mean_daily_bp,12.577668818236454,-8.801663991040781,38.551218300602464,0.3132,46
+test,ALL,PPO regime-adaptive,ARIMA,sharpe,2.388977369840055,1.3354540504149908,3.533156290825055,0.0,393
+test,ALL,PPO regime-adaptive,ARIMA,total_return,0.49989706940839573,0.1607212383648109,1.0670954595120756,0.0004,393
+test,Normal_Market,PPO regime-adaptive,ARIMA,mean_daily_bp,14.539171805592956,0.8705657049830657,29.014265903377296,0.0316,229
+test,Weak_Bear,PPO regime-adaptive,ARIMA,mean_daily_bp,13.144701299592695,0.0020006789358557203,26.698150039272967,0.05,118
+test,High_Volatility,PPO regime-adaptive,ARIMA,mean_daily_bp,27.65295597914633,14.155084732623433,43.030279386132136,0.0,46
+test,ALL,PPO regime-blind,Buy & Hold,sharpe,0.1161715296717431,-0.4150553099559985,0.7092401402036792,0.7032,393
+test,ALL,PPO regime-blind,Buy & Hold,total_return,0.013123849681115907,-0.3456081416804758,0.20087690088693114,0.928,393
+test,Normal_Market,PPO regime-blind,Buy & Hold,mean_daily_bp,1.013718157927681,-8.361317530601584,10.621795359643064,0.848,229
+test,Weak_Bear,PPO regime-blind,Buy & Hold,mean_daily_bp,5.808872209915759,-3.189518835541043,15.6962091838308,0.218,118
+test,High_Volatility,PPO regime-blind,Buy & Hold,mean_daily_bp,-22.326631132589174,-36.18308707122815,-7.404528548229954,0.0024,46
+validation,ALL,PPO regime-adaptive (scaled),PPO regime-blind (scaled),sharpe,-1.865535771001778,-3.3623991269504723,-0.38066709005048327,0.0124,391
+validation,ALL,PPO regime-adaptive (scaled),PPO regime-blind (scaled),total_return,-0.13822090820247024,-0.27944361150588226,-0.014644055756543602,0.0252,391
+validation,Normal_Market,PPO regime-adaptive (scaled),PPO regime-blind (scaled),mean_daily_bp,-3.206750006446403,-7.117942145205551,0.26649645954804374,0.0724,200
+validation,Weak_Bear,PPO regime-adaptive (scaled),PPO regime-blind (scaled),mean_daily_bp,-3.48310153759964,-8.883364874803206,2.02603418916387,0.1928,182
+validation,High_Volatility,PPO regime-adaptive (scaled),PPO regime-blind (scaled),mean_daily_bp,-10.687885585599965,-10.687885585599965,-10.68788558559996,0.0,9
+validation,ALL,PPO regime-adaptive (scaled),Buy & Hold,sharpe,-1.7814230106474258,-3.234161790546861,-0.3215370791629912,0.0152,391
+validation,ALL,PPO regime-adaptive (scaled),Buy & Hold,total_return,-0.30417314136121754,-0.9395161869295058,0.0877403605373055,0.1556,391
+validation,Normal_Market,PPO regime-adaptive (scaled),Buy & Hold,mean_daily_bp,-5.688337612817331,-19.78819145667655,7.689226338792549,0.4132,200
+validation,Weak_Bear,PPO regime-adaptive (scaled),Buy & Hold,mean_daily_bp,-8.61503298965413,-23.52896300599621,6.77764666469073,0.2556,182
+validation,High_Volatility,PPO regime-adaptive (scaled),Buy & Hold,mean_daily_bp,-35.29991513935602,-35.29991513935602,-35.29991513935602,0.0,9
+validation,ALL,PPO regime-adaptive (scaled),XGBoost,sharpe,-0.9916428286490303,-2.912465326362707,1.0448058983427395,0.3436,391
+validation,ALL,PPO regime-adaptive (scaled),XGBoost,total_return,-0.04963909708815295,-0.5176729264292375,0.24844391296075333,0.7988,391
+validation,Normal_Market,PPO regime-adaptive (scaled),XGBoost,mean_daily_bp,-1.9615783851359385,-15.398047344854726,10.220261943312291,0.8148,200
+validation,Weak_Bear,PPO regime-adaptive (scaled),XGBoost,mean_daily_bp,-0.4353351363224617,-13.925162087176826,12.714730266128191,0.9652,182
+validation,High_Volatility,PPO regime-adaptive (scaled),XGBoost,mean_daily_bp,-22.02165633331766,-22.02165633331766,-22.02165633331766,0.0,9
+validation,ALL,PPO regime-adaptive (scaled),ARIMA,sharpe,1.0381723352863546,-0.6132982758012833,2.8978450148785724,0.23,391
+validation,ALL,PPO regime-adaptive (scaled),ARIMA,total_return,0.30469902160798834,0.09861768374441689,0.45107448447522674,0.0056,391
+validation,Normal_Market,PPO regime-adaptive (scaled),ARIMA,mean_daily_bp,9.904728682355662,1.415381935073494,18.146088464352275,0.0272,200
+validation,Weak_Bear,PPO regime-adaptive (scaled),ARIMA,mean_daily_bp,9.654950335778732,-2.587265733995047,21.352788211805954,0.1244,182
+validation,High_Volatility,PPO regime-adaptive (scaled),ARIMA,mean_daily_bp,-4.958221050826871,-4.958221050826871,-4.958221050826871,0.0,9
+validation,ALL,PPO regime-blind (scaled),Buy & Hold,sharpe,0.08411276035435222,-0.009623632047876706,0.26780332723069605,0.266,391
+validation,ALL,PPO regime-blind (scaled),Buy & Hold,total_return,-0.1659522331587473,-0.6701750278918199,0.11683140490941563,0.312,391
+validation,Normal_Market,PPO regime-blind (scaled),Buy & Hold,mean_daily_bp,-2.481587606370928,-13.443636211595964,8.042154690125288,0.6376,200
+validation,Weak_Bear,PPO regime-blind (scaled),Buy & Hold,mean_daily_bp,-5.13193145205449,-14.82701363050641,4.921432358924297,0.2948,182
+validation,High_Volatility,PPO regime-blind (scaled),Buy & Hold,mean_daily_bp,-24.612029553756052,-24.61202955375606,-24.612029553756052,0.0,9
+test,ALL,PPO regime-adaptive (scaled),PPO regime-blind (scaled),sharpe,-0.1770973692571491,-1.2361175587657622,0.8926431065919745,0.7512,393
+test,ALL,PPO regime-adaptive (scaled),PPO regime-blind (scaled),total_return,-0.015355478275957735,-0.14214811605813735,0.1427440516264723,0.8344,393
+test,Normal_Market,PPO regime-adaptive (scaled),PPO regime-blind (scaled),mean_daily_bp,-3.6319620281193448,-7.880223802740937,0.37341085827900056,0.0832,229
+test,Weak_Bear,PPO regime-adaptive (scaled),PPO regime-blind (scaled),mean_daily_bp,3.336812007767515,-1.1821392617801894,8.335856201839194,0.158,118
+test,High_Volatility,PPO regime-adaptive (scaled),PPO regime-blind (scaled),mean_daily_bp,6.763499409340227,-2.356808644896107,19.918507517963317,0.2168,46
+test,ALL,PPO regime-adaptive (scaled),Buy & Hold,sharpe,-0.05381270790450218,-1.1424873465087473,1.0267252065842127,0.9248,393
+test,ALL,PPO regime-adaptive (scaled),Buy & Hold,total_return,-0.021102223395202735,-0.5126014961740847,0.2675924807764145,0.9196,393
+test,Normal_Market,PPO regime-adaptive (scaled),Buy & Hold,mean_daily_bp,-0.36002180058440425,-12.890674800798115,11.498202352667995,0.9428,229
+test,Weak_Bear,PPO regime-adaptive (scaled),Buy & Hold,mean_daily_bp,9.045998705395988,-6.908640132882213,25.456392644647046,0.2728,118
+test,High_Volatility,PPO regime-adaptive (scaled),Buy & Hold,mean_daily_bp,-31.985071976016805,-53.22890547250294,-9.876059849632528,0.0016,46
+test,ALL,PPO regime-adaptive (scaled),XGBoost,sharpe,0.8521958402142054,-0.42380801771634863,2.1797388789359182,0.1808,393
+test,ALL,PPO regime-adaptive (scaled),XGBoost,total_return,0.1908837658284711,-0.09694310412324626,0.3914442861361289,0.1708,393
+test,Normal_Market,PPO regime-adaptive (scaled),XGBoost,mean_daily_bp,2.7114588802162487,-7.285132616668133,12.197642003103839,0.574,229
+test,Weak_Bear,PPO regime-adaptive (scaled),XGBoost,mean_daily_bp,16.823004816772634,4.855882430385521,27.858335889329606,0.0028,118
+test,High_Volatility,PPO regime-adaptive (scaled),XGBoost,mean_daily_bp,-14.540524068123368,-37.42521967551555,6.6118549573724295,0.1968,46
+test,ALL,PPO regime-adaptive (scaled),ARIMA,sharpe,2.1403295135507054,0.6858943246357373,3.595318732972378,0.0036,393
+test,ALL,PPO regime-adaptive (scaled),ARIMA,total_return,0.41550021915827395,0.19481735338513625,0.6365319814847178,0.0008,393
+test,Normal_Market,PPO regime-adaptive (scaled),ARIMA,mean_daily_bp,10.811326694554303,-0.3946449539485181,23.057329735213884,0.0584,229
+test,Weak_Bear,PPO regime-adaptive (scaled),ARIMA,mean_daily_bp,22.143895090593716,9.485370107742998,36.706020102487244,0.0,118
+test,High_Volatility,PPO regime-adaptive (scaled),ARIMA,mean_daily_bp,0.534763092786509,-19.234939376041204,18.60022707731332,0.9428,46
+test,ALL,PPO regime-blind (scaled),Buy & Hold,sharpe,0.12328466135264693,-0.14794501754556064,0.5135332672331229,0.516,393
+test,ALL,PPO regime-blind (scaled),Buy & Hold,total_return,-0.005746745119245,-0.5064609047508312,0.24815475423333364,0.9732,393
+test,Normal_Market,PPO regime-blind (scaled),Buy & Hold,mean_daily_bp,3.2719402275349405,-8.329015885047902,14.924252896909902,0.5988,229
+test,Weak_Bear,PPO regime-blind (scaled),Buy & Hold,mean_daily_bp,5.709186697628472,-6.7691994988558,17.982479030533945,0.374,118
+test,High_Volatility,PPO regime-blind (scaled),Buy & Hold,mean_daily_bp,-38.74857138535703,-66.15013035373642,-10.557133431890035,0.004,46

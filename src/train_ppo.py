@@ -1,4 +1,5 @@
 import os
+import argparse
 import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -7,15 +8,26 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
-from trading_env import RegimeXTradingEnv
+from trading_env import RegimeXTradingEnv, obs_stats_from
 from data_split import get_splits
 
 # ============================================================
 # REGIMEX - PPO TRAINING
 # ============================================================
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--blind", action="store_true",
+                    help="train the regime-blind agent (regime_adaptive=False)")
+parser.add_argument("--scaled", action="store_true",
+                    help="v2 observation: z-scored features + one-hot regime")
+parser.add_argument("--seed", type=int, default=0)
+parser.add_argument("--timesteps", type=int, default=500_000)
+args = parser.parse_args()
+
+# Adaptive agent keeps the original paths (seed 0); other runs get a suffix.
+TAG       = ("blind" if args.blind else "adaptive") + ("_scaled" if args.scaled else "") + f"_s{args.seed}"
 DATA_PATH = "data/processed/RELIANCE_regimes.csv"
-MODEL_DIR = "models/ppo_regimex"
+MODEL_DIR = f"models/ppo_regimex/{TAG}"
 LOG_DIR   = "logs/ppo_regimex"
 
 os.makedirs(MODEL_DIR, exist_ok=True)
@@ -38,7 +50,11 @@ print(f"\nTraining on {len(train_df)} days (Train split).")
 # We use regime_adaptive=True so the agent experiences the
 # regime-conditioned reward during training.
 def make_env():
-    return RegimeXTradingEnv(df=train_df, regime_adaptive=True)
+    return RegimeXTradingEnv(
+        df=train_df, regime_adaptive=not args.blind,
+        scaled_obs=args.scaled,
+        obs_stats=obs_stats_from(train_df) if args.scaled else None,
+    )
 
 env = DummyVecEnv([make_env])
 
@@ -58,6 +74,7 @@ model = PPO(
     clip_range=0.2,
     policy_kwargs=policy_kwargs,
     tensorboard_log=LOG_DIR,
+    seed=args.seed,
     verbose=1,
 )
 
@@ -70,16 +87,16 @@ checkpoint_callback = CheckpointCallback(
 )
 
 # 5. Train
-TOTAL_TIMESTEPS = 500_000
+TOTAL_TIMESTEPS = args.timesteps
 print(f"\nStarting training for {TOTAL_TIMESTEPS} timesteps...")
 model.learn(
     total_timesteps=TOTAL_TIMESTEPS,
     callback=checkpoint_callback,
-    tb_log_name="PPO_run"
+    tb_log_name=f"PPO_{TAG}"
 )
 
 # 6. Save final model
-final_model_path = os.path.join(MODEL_DIR, "ppo_regimex_final")
+final_model_path = os.path.join(MODEL_DIR, "ppo_regimex_final")  # -> models/ppo_regimex/<TAG>/ppo_regimex_final.zip
 model.save(final_model_path)
 print(f"\nTraining complete. Final model saved to: {final_model_path}.zip")
 print("=" * 60)

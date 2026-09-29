@@ -31,3 +31,7 @@ ta
 # Jupyter / Notebook Support
 jupyter
 ipykernel
+# Phase 2
+xgboost
+statsmodels
+tensorboard

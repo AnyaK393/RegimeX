@@ -31,13 +31,15 @@ import numpy as np
 #   rolling-percentile vol regimes used in Lopez de Prado (2018).
 # ============================================================
 
-INPUT_PATH   = "data/processed/RELIANCE_regimes.csv"
+INPUT_PATH   = "data/processed/RELIANCE_regimes_kmeans_original.csv"
 OUTPUT_PATH  = "data/processed/RELIANCE_regimes.csv"
+LIVE_PATH    = "data/processed/RELIANCE_regimes.csv"
 
 TRAIN_END_DATE = "2022-10-25"
 VAL_END_DATE   = "2024-05-31"
 
 TRAILING_WINDOW = 504    # ~2 trading years
+EXPANDING_MIN_PERIODS = 126   # ~6 months before any threshold is valid
 MIN_PERIODS     = 252    # ~1 trading year minimum before using trailing; else use expanding
 PERCENTILE      = 90
 
@@ -51,6 +53,12 @@ print("=" * 60)
 # ------------------------------------------------------------
 # Load dataset (use regime_features so we start from clean KMeans)
 # ------------------------------------------------------------
+# Keep a pristine copy of the original KMeans labels the first time this
+# runs, so re-running is idempotent and never stacks relabels.
+import os, shutil
+if not os.path.exists(INPUT_PATH):
+    shutil.copyfile(LIVE_PATH, INPUT_PATH)
+
 df = pd.read_csv(INPUT_PATH, parse_dates=["Date"])
 df = df.sort_values("Date").reset_index(drop=True)
 
@@ -67,7 +75,9 @@ print(df["Market_Regime"].value_counts().to_string())
 #
 # Two passes:
 #   1. Trailing 504-day window  (primary, causal)
-#   2. Expanding from start     (fallback for early rows)
+#   2. Expanding from start     (fallback for early rows; needs
+#      >= EXPANDING_MIN_PERIODS prior days, otherwise no threshold is
+#      invented and the row keeps its KMeans label)
 #
 # On day t, the quantile is computed over [t-503, t-1] only.
 # The closed="left" shift ensures day t is NOT included.
@@ -82,7 +92,7 @@ vol_shifted = vol.shift(1)
 
 p90_expanding = (
     vol_shifted
-    .expanding(min_periods=2)
+    .expanding(min_periods=EXPANDING_MIN_PERIODS)
     .quantile(PERCENTILE / 100)
 )
 

@@ -22,6 +22,9 @@ import os
 #     - lambda_fee * turnover  (see _compute_reward).
 #   - Tracks self.peak_value for drawdown, self._last_trade_value
 #     for turnover.
+#   - Reward is measured close(t) -> close(t+1) after the action, so
+#     price moves are reflected in the reward (earlier draft valued
+#     both sides at the same close and only saw trading costs).
 # ============================================================
 
 DATA_PATH = "data/processed/RELIANCE_regimes.csv"
@@ -50,6 +53,18 @@ REGIME_BLIND_LAMBDA = 0.05   # flat rate used when regime_adaptive=False
 DEFAULT_LAMBDA_FEE  = 0.01
 
 
+REGIME_ORDER = ["Normal_Market", "Weak_Bear", "High_Volatility"]
+OBS_FEATURES = ["Daily_Return", "Rolling_Volatility", "Hurst"]
+
+
+def obs_stats_from(train_df) -> dict:
+    """Mean/std of the continuous features, from TRAIN data only (no leakage)."""
+    return {
+        c: (float(train_df[c].mean()), float(train_df[c].std(ddof=0) or 1.0))
+        for c in OBS_FEATURES
+    }
+
+
 class RegimeXTradingEnv(gym.Env):
 
     # --------------------------------------------------------
@@ -68,6 +83,8 @@ class RegimeXTradingEnv(gym.Env):
         regime_adaptive: bool = True,
         lambda_risk_config: dict = None,
         lambda_fee: float = DEFAULT_LAMBDA_FEE,
+        scaled_obs: bool = False,
+        obs_stats: dict = None,
     ):
         """
         Parameters
@@ -86,6 +103,17 @@ class RegimeXTradingEnv(gym.Env):
             'High_Volatility', 'Weak_Bear', 'Normal_Market'.
         lambda_fee : float
             Turnover penalty weight (applied to trade_value / portfolio_value).
+        scaled_obs : bool
+            False (default, v1): raw 5-dim observation
+                [Daily_Return, Rolling_Volatility, Hurst, Regime(int), Holdings].
+            True (v2): 7-dim observation with the three continuous features
+                z-scored (clipped to +/-5) using `obs_stats`, the regime as a
+                one-hot vector (Normal, Weak_Bear, High_Vol) and Holdings.
+                Raw features are ~0.01 in scale next to 0/1/2-valued inputs,
+                which starves the policy network of the return/volatility signal.
+        obs_stats : dict or None
+            {feature: (mean, std)} from obs_stats_from(train_df). Required when
+            scaled_obs=True; MUST come from the training split only.
         """
         super().__init__()
 
@@ -100,6 +128,11 @@ class RegimeXTradingEnv(gym.Env):
             df["Date"] = pd.to_datetime(df["Date"])
 
         self.df = df.reset_index(drop=True)
+
+        self.scaled_obs = scaled_obs
+        self.obs_stats  = obs_stats
+        if scaled_obs and obs_stats is None:
+            raise ValueError("scaled_obs=True requires obs_stats (from train split)")
 
         # ----------------------------------------------------
         # Reward configuration
@@ -146,17 +179,16 @@ class RegimeXTradingEnv(gym.Env):
         # [Daily_Return, Rolling_Volatility, Hurst, Regime, Holdings]
         # ----------------------------------------------------
 
-        self.observation_space = spaces.Box(
-            low=np.array(
-                [-np.inf, 0, 0, 0, 0],
+        if scaled_obs:
+            self.observation_space = spaces.Box(
+                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float32
+            )
+        else:
+            self.observation_space = spaces.Box(
+                low=np.array([-np.inf, 0, 0, 0, 0], dtype=np.float32),
+                high=np.array([np.inf, np.inf, 1, 2, 1], dtype=np.float32),
                 dtype=np.float32
-            ),
-            high=np.array(
-                [np.inf, np.inf, 1, 2, 1],
-                dtype=np.float32
-            ),
-            dtype=np.float32
-        )
+            )
 
         # ----------------------------------------------------
         # Episode state (initialised in reset())
@@ -176,19 +208,26 @@ class RegimeXTradingEnv(gym.Env):
     def _get_observation(self):
 
         row = self.df.iloc[self.current_step]
+        holding = 1 if self.shares > 0 else 0
 
-        observation = np.array(
+        if self.scaled_obs:
+            z = [
+                np.clip((row[c] - self.obs_stats[c][0]) / self.obs_stats[c][1], -5, 5)
+                for c in OBS_FEATURES
+            ]
+            onehot = [1.0 if row["Market_Regime"] == r else 0.0 for r in REGIME_ORDER]
+            return np.array(z + onehot + [holding], dtype=np.float32)
+
+        return np.array(
             [
                 row["Daily_Return"],
                 row["Rolling_Volatility"],
                 row["Hurst"],
                 row["Regime"],
-                1 if self.shares > 0 else 0
+                holding
             ],
             dtype=np.float32
         )
-
-        return observation
 
     # ========================================================
     # CALCULATE PORTFOLIO VALUE
@@ -410,13 +449,21 @@ class RegimeXTradingEnv(gym.Env):
         self._execute_trade(action)
 
         # ----------------------------------------------------
-        # Portfolio value AFTER action
+        # Advance to next trading day, THEN value the portfolio.
+        #
+        # The trade executes at today's close; the reward is the
+        # realised change in portfolio value by the next close. This
+        # is what lets price moves (not just trading costs) reach the
+        # reward. The agent only ever observes day-t data when acting,
+        # so this introduces no look-ahead.
         # ----------------------------------------------------
+
+        self.current_step += 1
 
         current_value = self._get_portfolio_value()
 
         # ----------------------------------------------------
-        # Regime-conditional reward
+        # Regime-conditional reward (regime at decision time)
         # ----------------------------------------------------
 
         reward = self._compute_reward(
@@ -424,12 +471,6 @@ class RegimeXTradingEnv(gym.Env):
             current_value,
             regime_label,
         )
-
-        # ----------------------------------------------------
-        # Advance to next trading day
-        # ----------------------------------------------------
-
-        self.current_step += 1
 
         # ----------------------------------------------------
         # Episode termination
