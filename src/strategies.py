@@ -37,10 +37,10 @@ FEATURES = ["Daily_Return", "Rolling_Volatility", "Hurst", "Regime"]
 # Rollout
 # ------------------------------------------------------------
 
-def rollout(df: pd.DataFrame, policy, regime_adaptive: bool = True, **env_kwargs) -> pd.DataFrame:
+def rollout(df: pd.DataFrame, policy, regime_adaptive: bool = True, env_cls=None, **env_kwargs) -> pd.DataFrame:
     """Runs one full episode of `policy` over `df` and returns a per-step log."""
     df = df.reset_index(drop=True)
-    env = RegimeXTradingEnv(df=df, regime_adaptive=regime_adaptive, **env_kwargs)
+    env = (env_cls or RegimeXTradingEnv)(df=df, regime_adaptive=regime_adaptive, **env_kwargs)
     obs, _ = env.reset()
 
     rows, done, t = [], False, 0
@@ -60,6 +60,7 @@ def rollout(df: pd.DataFrame, policy, regime_adaptive: bool = True, **env_kwargs
             "value":       info["portfolio_value"],
             "trade_value": env._last_trade_value,
             "shares":      info["shares"],
+            "exposure":    info.get("exposure", float(info["shares"] > 0)),
             "reward":      reward,
         })
         t += 1

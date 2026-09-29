@@ -132,7 +132,64 @@ stretches were rallies and the agents were not fully invested. The
 regime-conditioned reward therefore did not produce a demonstrable out-of-sample
 advantage on either one stock or five.
 
-## 10. Reproducing
+## 10. v3: position-sizing agent with a dense mean-variance regime reward
+
+**Why.** Looking at why v1/v2 collapsed to always-invested or always-cash, three design flaws were identified
+(`src/exposure_env.py` documents them):
+
+1. The reward charged `0.01 x turnover` per trade, about 20x a typical daily return, and double-counted costs already deducted from portfolio value. Removed.
+2. The risk term (`lambda x drawdown-from-peak`) is zero whenever the agent is in cash or at a new high, so adaptive and blind agents got nearly the same reward. Replaced by a dense per-step penalty `0.5 x gamma(regime) x r_t^2`.
+3. All-in/all-out actions cannot express "take less risk in a volatile regime". The agent now picks a target exposure in {0, 25, 50, 75, 100}% (5% no-trade band).
+
+Design choices fixed **before** looking at results and not tuned: gamma ratio Normal : Weak_Bear : High_Volatility = 1 : 3 : 6
+(gamma = 3 / 9 / 18, following the ordering already used in v1); the regime-blind agent uses the
+train-frequency-weighted mean gamma (7.72), so both agents have identical *average* risk aversion and differ only in whether
+it depends on the regime. Scaled observations, pooled five-stock training (1M steps, 3 seeds each). Validation was run first
+as a sanity check, then the test split once. (Note: the test split had already been viewed while evaluating v1/v2, though it
+was not used to tune anything; v3 was motivated by diagnostics of the training behaviour and reward design.)
+
+Added baselines: Constant 50% exposure and a volatility-targeting rule (`exposure = clip(1% / rolling vol, 0, 1)`).
+
+**Test, equal-weight five-stock portfolio (mean over 3 seeds for PPO):**
+
+| Strategy | Total return | Sharpe | Max drawdown | Ann. vol |
+|---|---|---|---|---|
+| Buy & Hold | +10.2% | 0.52 | -15.3% | 14.0% |
+| Constant 50% | +5.4% | 0.50 | -8.1% | 7.2% |
+| Vol-target | +2.6% | 0.20 | -14.2% | 11.2% |
+| PPO-v3 regime-blind | -1.1% | -0.08 | -8.2% | 5.4% |
+| PPO-v3 regime-adaptive | +1.4% | 0.18 | -7.8% | 6.6% |
+
+**Behaviour: mean exposure by regime (test).** This is the first configuration where the agents visibly manage risk by regime:
+
+| Strategy | Normal_Market | Weak_Bear | High_Volatility |
+|---|---|---|---|
+| Buy & Hold | 0.99 | 0.99 | 0.99 |
+| Vol-target | 0.87 | 0.84 | 0.55 |
+| PPO-v3 regime-blind | 0.53 | 0.26 | 0.13 |
+| PPO-v3 regime-adaptive | 0.66 | 0.31 | 0.16 |
+
+Adaptive minus blind exposure: +0.13 in Normal_Market (95% CI [0.10, 0.15], p < 0.001) and +0.06 in Weak_Bear
+([0.03, 0.09], p < 0.001); no significant difference in High_Volatility (both agents are ~85% de-risked there).
+So with equal average risk aversion, the regime-conditioned reward makes the agent take *more* risk in calm markets, rather than
+less in volatile ones (the regime-blind agent is over-cautious everywhere).
+
+**Adaptive vs blind (paired block bootstrap, portfolio level, n = 393):** Sharpe +0.29 [-0.05, +0.67], p = 0.096;
+total return +2.5 pts, p = 0.25; max drawdown no different (p = 0.44). On validation the sign agrees (+0.06) but is far from significant (p = 0.82).
+The direction is consistent, but the evidence is suggestive, not conclusive at the 5% level.
+
+**Versus simple baselines:** the adaptive agent has a significantly shallower drawdown than Buy & Hold (-7.8% vs -15.3%, p = 0.001)
+and than Vol-target (p < 0.001), but it does **not** beat Constant 50% (same drawdown, lower Sharpe 0.18 vs 0.50, p = 0.31) and its
+Sharpe is not significantly different from Buy & Hold (p = 0.29). On High_Volatility days it earns significantly less than Buy & Hold and
+Constant 50% (p < 0.001) because the test period's volatile stretches were rallies.
+
+**Reading.** The redesign fixed the *behavioural* problem (agents now differentiate regimes and control risk) and gave the first
+directionally positive, though not significant, adaptive-vs-blind result. It did not produce an agent that beats naive
+de-risking in this test window, mainly because the agents are over-cautious (validation shows the same pattern, with vol-target
+Sharpe 0.73 vs 0.16 for adaptive). Further tuning of gamma or exposure levels on this test window would be overfitting to it; a fair next
+step is to select those on validation or via walk-forward, on more history.
+
+## 11. Reproducing
 
 ```
 python src/regime_relabel.py
@@ -143,4 +200,7 @@ python src/explain_shap.py
 python src/build_multistock.py                # other four stocks
 python src/train_pooled.py --scaled --seed 0  # add --blind for the blind agent
 python src/evaluate_pooled.py
+python src/train_pooled.py --exposure --scaled --seed 0   # v3; add --blind for the blind agent
+python src/evaluate_v3.py --split validation
+python src/evaluate_v3.py --split test
 ```

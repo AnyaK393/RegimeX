@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from data_split import get_splits
 from trading_env import obs_stats_from
 from pooled_env import PooledTradingEnv
+from exposure_env import PooledExposureEnv, blind_gamma_from
 
 # ============================================================
 # REGIMEX - PPO TRAINING ON THE POOLED FIVE-STOCK TRAIN SET
@@ -22,12 +23,14 @@ TICKERS = ["RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY"]
 parser = argparse.ArgumentParser()
 parser.add_argument("--blind", action="store_true")
 parser.add_argument("--scaled", action="store_true")
+parser.add_argument("--exposure", action="store_true",
+                    help="v3 position-sizing env with mean-variance regime reward")
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--timesteps", type=int, default=1_000_000)
 args = parser.parse_args()
 
 TAG = ("blind" if args.blind else "adaptive") + ("_scaled" if args.scaled else "") + f"_s{args.seed}"
-MODEL_DIR = f"models/ppo_pooled/{TAG}"
+MODEL_DIR = f"models/ppo_pooled{'_v3' if args.exposure else ''}/{TAG}"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 train_dfs = []
@@ -37,14 +40,28 @@ for t in TICKERS:
 print(f"Pooled train: {sum(len(d) for d in train_dfs)} bars across {len(train_dfs)} stocks")
 
 stats = obs_stats_from(pd.concat(train_dfs)) if args.scaled else None
-env = DummyVecEnv([lambda: PooledTradingEnv(
-    train_dfs, regime_adaptive=not args.blind, scaled_obs=args.scaled, obs_stats=stats)])
+
+if args.exposure:
+    bg = blind_gamma_from(train_dfs)
+    print(f"v3 exposure env; regime-blind gamma = {bg:.3f}")
+
+    def make():
+        return PooledExposureEnv(
+            train_dfs, regime_adaptive=not args.blind, blind_gamma=bg,
+            scaled_obs=args.scaled, obs_stats=stats)
+else:
+    def make():
+        return PooledTradingEnv(
+            train_dfs, regime_adaptive=not args.blind,
+            scaled_obs=args.scaled, obs_stats=stats)
+
+env = DummyVecEnv([make])
 
 model = PPO(
     "MlpPolicy", env, learning_rate=3e-4, n_steps=2048, batch_size=64, n_epochs=10,
     gamma=0.99, ent_coef=0.01, clip_range=0.2,
     policy_kwargs=dict(net_arch=dict(pi=[64, 64], vf=[64, 64])),
-    tensorboard_log="logs/ppo_pooled", seed=args.seed, verbose=1,
+    tensorboard_log="logs/ppo_pooled_v3" if args.exposure else "logs/ppo_pooled", seed=args.seed, verbose=1,
 )
 model.learn(
     total_timesteps=args.timesteps,
