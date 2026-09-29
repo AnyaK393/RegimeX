@@ -5,8 +5,12 @@ __pycache__/
 .DS_Store
 
 # Data and Models (Do not push large files)
-data/
-models/
+# Raw/intermediate data and training artefacts stay local; the small regime
+# datasets and FINAL models are tracked so results are reproducible after a clone.
+data/raw/
+data/processed/*
+!data/processed/*_regimes.csv
+models/**/ppo_model_*.zip
 logs/
 
 # IDEs
