@@ -37,6 +37,11 @@ DEFAULT_GAMMA = {"Normal_Market": 3.0, "Weak_Bear": 9.0, "High_Volatility": 18.0
 NO_TRADE_BAND = 0.05          # ignore rebalances smaller than 5% of equity
 
 
+def gamma_config(base: float = 3.0) -> dict:
+    """Regime gammas with the fixed 1 : 3 : 6 ratio, scaled so Normal_Market = base."""
+    return {k: v * base / DEFAULT_GAMMA["Normal_Market"] for k, v in DEFAULT_GAMMA.items()}
+
+
 def blind_gamma_from(train_dfs, gamma_cfg=None) -> float:
     """Train-frequency-weighted mean gamma (equal average risk aversion)."""
     import pandas as pd

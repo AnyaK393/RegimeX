@@ -383,22 +383,26 @@ These mechanisms make the environment more realistic than assuming perfect marke
 
 # 🎁 Reward Function
 
-The current reward is based on the change in portfolio value.
+The reward is the realised log-return of the portfolio from the close of day *t* to the close of day *t+1*
+(after the action), minus a regime-conditional risk penalty. Transaction costs, slippage and market impact are
+deducted from portfolio value, so they reduce the reward automatically.
+
+**v1 (`src/trading_env.py`)** – BUY / HOLD / SELL, all-in or all-out:
 
 ```text
-Reward =
-Current Portfolio Value
--
-Previous Portfolio Value
+Reward = ln(V[t+1] / V[t]) - lambda_risk(regime) * drawdown - lambda_fee * turnover
 ```
 
-Therefore:
+**v3 (`src/exposure_env.py`)** – the agent chooses a target exposure (0 / 25 / 50 / 75 / 100 % of equity) and is
+penalised by a dense mean-variance term whose risk aversion depends on the regime:
 
-- Profitable portfolio changes produce positive rewards.
-- Portfolio losses produce negative rewards.
-- Transaction costs reduce rewards.
-- Slippage reduces effective returns.
-- Market impact reduces effective returns.
+```text
+Reward = 100 * [ ln(V[t+1] / V[t]) - 0.5 * gamma(regime) * r[t]^2 ]
+gamma : Normal_Market = 3,  Weak_Bear = 9,  High_Volatility = 18
+```
+
+The regime-blind control uses the train-frequency-weighted mean gamma, so both agents have the same *average* risk
+aversion and differ only in whether it depends on the regime. See `docs/PHASE2_RESULTS.md` for why v3 was introduced.
 
 ---
 
@@ -441,13 +445,13 @@ Observation Space: Box(...)
 
 # 🤖 8. PPO Reinforcement Learning
 
-## 🚧 Next Major Stage
+## ✅ Implemented
 
-The next stage of RegimeX is implementing a **PPO (Proximal Policy Optimization)** trading agent.
+A **PPO (Proximal Policy Optimization)** trading agent (Stable-Baselines3) learns trading decisions instead of
+using manually defined rules. Agents are trained per regime-adaptive / regime-blind variant, with several seeds,
+either on RELIANCE alone or pooled across all five stocks (`src/train_ppo.py`, `src/train_pooled.py`).
 
-The agent will learn trading decisions instead of using manually defined trading rules.
-
-The learning loop will be:
+The learning loop is:
 
 ```text
 Market State
@@ -473,7 +477,8 @@ The goal is for the agent to learn how different market regimes affect trading d
 
 # 📈 9. Backtesting
 
-After training the PPO agent, the strategy will be evaluated on historical data that was not used during training.
+After training, every strategy is evaluated through the same trading environment on chronological
+validation / test data that was not used during training (`src/evaluate.py`, `src/evaluate_pooled.py`, `src/evaluate_v3.py`).
 
 Performance metrics will include:
 
@@ -500,18 +505,14 @@ Performance metrics will include:
 
 # 🆚 10. Benchmark Comparison
 
-The trained PPO strategy will be compared against simple baseline strategies.
-
-The primary benchmark will be:
+The trained PPO strategies are compared against a baseline ladder, all run through the same environment:
 
 ```text
-Buy & Hold
-```
-
-Additional baselines may include:
-
-```text
-Random Trading
+Buy & Hold            passive benchmark
+ARIMA(1,0,1)          classical time-series, walk-forward
+XGBoost               supervised next-day direction on the same features
+Constant 50%          naive fixed de-risking
+Volatility targeting  exposure = clip(1% / rolling volatility, 0, 1)
 ```
 
 This comparison will help determine whether the learned strategy provides meaningful improvement over simpler approaches.
@@ -520,9 +521,9 @@ This comparison will help determine whether the learned strategy provides meanin
 
 # 🔍 11. Explainable AI
 
-SHAP will be integrated to understand the factors influencing the agent's trading decisions.
+SHAP (`src/explain_shap.py`) is used to understand the factors influencing the agent's trading decisions.
 
-Important features will include:
+Features explained:
 
 - Daily Return
 - Rolling Volatility
@@ -540,7 +541,8 @@ SHAP will help analyse the contribution of individual features to the agent's de
 
 # 🔄 12. Walk-Forward Validation
 
-Financial data is time-dependent, so the final system will use chronological validation.
+Financial data is time-dependent, so all evaluation is chronological (`src/data_split.py`, `src/walk_forward.py`,
+`src/wf_select_v3.py`).
 
 ```text
 Historical Data
@@ -577,10 +579,23 @@ RegimeX/
 │   ├── regime_detection.py
 │   ├── regime_interpretation.py
 │   ├── add_regime_labels.py
+│   ├── regime_relabel.py          # causal rolling-P90 High_Volatility labels
+│   ├── build_multistock.py        # regime datasets for the other four stocks
 │   ├── trading_environment.py
-│   ├── trading_env.py
-│   └── test_trading_env.py
+│   ├── trading_env.py             # v1 environment (BUY/HOLD/SELL)
+│   ├── exposure_env.py            # v3 environment (position sizing)
+│   ├── pooled_env.py
+│   ├── data_split.py
+│   ├── train_ppo.py / train_pooled.py
+│   ├── strategies.py / metrics.py
+│   ├── evaluate.py / evaluate_pooled.py / evaluate_v3.py
+│   ├── walk_forward.py / wf_select_v3.py / wf_select_report.py
+│   ├── explain_shap.py
+│   └── test_trading_env.py / test_regime_reward.py
 │
+├── docs/
+│   └── PHASE2_RESULTS.md
+├── results/                       # tables and figures
 ├── README.md
 ├── requirements.txt
 └── .gitignore
@@ -709,16 +724,29 @@ The Python scripts contain the reusable implementation, while the notebook provi
 - [x] PPO Agent
 - [x] PPO Training
 
+- [x] Causal rolling-percentile High_Volatility labelling
+- [x] Multi-stock regime datasets (TCS, HDFCBANK, ICICIBANK, INFY)
+- [x] Backtesting and baseline ladder (Buy & Hold, ARIMA, XGBoost, Constant 50%, Vol-target)
+- [x] Performance metrics (return, Sharpe, Sortino, max drawdown, turnover, win rate)
+- [x] Regime-stratified evaluation
+- [x] Bootstrap significance testing
+- [x] Walk-forward validation
+- [x] SHAP explainability
+- [x] Position-sizing environment (v3) with regime-conditioned risk reward
+
 ## 🚀 Upcoming
 
-- [ ] Backtesting
-- [ ] Buy & Hold Benchmark
-- [ ] Performance Metrics
-- [ ] SHAP Explainability
-- [ ] Walk-Forward Validation
-- [ ] Final Visualizations
-- [ ] Statistical Evaluation
-- [ ] Final Research Results
+- [ ] Walk-forward selection of the v3 risk-aversion scale (scripts written: `src/wf_select_v3.py`, `src/wf_select_report.py`)
+- [ ] SHAP explanations for the v3 agents
+- [ ] Final report / paper write-up
+
+## 📊 Results summary
+
+Full details, tables and caveats: [`docs/PHASE2_RESULTS.md`](docs/PHASE2_RESULTS.md).
+
+- The regime pipeline is causal and High_Volatility appears in train and test on all five stocks.
+- With the original all-in BUY/HOLD/SELL formulation, **no significant benefit from the regime-conditioned reward** was found, on one stock or five (reported as a negative result).
+- The v3 position-sizing agents do adapt to regimes (about 13–16 % exposure in High_Volatility versus 99 % for Buy & Hold) and cut drawdown by about half versus Buy & Hold. The adaptive-versus-blind Sharpe gain is suggestive (p ≈ 0.10) but not significant, and neither agent beats a naive Constant 50 % rule on Sharpe in the test window.
 
 ---
 
