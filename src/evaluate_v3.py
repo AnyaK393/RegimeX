@@ -13,7 +13,8 @@ from trading_env import obs_stats_from
 from exposure_env import RegimeXExposureEnv, blind_gamma_from, gamma_config, EXPOSURES
 from strategies import rollout, ppo_policy
 from metrics import (
-    summarize, daily_returns, paired_bootstrap, sharpe, total_return,
+    summarize, daily_returns, paired_bootstrap, seed_permutation_test,
+    hierarchical_bootstrap, sharpe, total_return,
     max_drawdown, REGIMES,
 )
 
@@ -188,8 +189,46 @@ def main():
                       "stat": "mean_exposure", **res})
     bt = pd.DataFrame(brows)
     bt.to_csv(f"{OUT}/bootstrap.csv", index=False)
-    print("\nBootstrap (A = adaptive; diff = A - B; 95% CI; two-sided p):")
+    print("\nDay-level bootstrap on seed-averaged series (ignores seed variance)")
+    print("(A = adaptive; diff = A - B; 95% CI; two-sided p):")
     print(bt.round(4).to_string(index=False))
+
+    # ---- seed-level tests: adaptive vs blind, the seed is the unit ----
+    # permutation: per-seed metric values, seed labels shuffled across arms
+    # hierarchical: resample seeds within each arm, then blocks of days
+    Bl = "PPO-v3 regime-blind"
+
+    def seed_port(lbl):        # (n_seeds, n_days) equal-weight portfolio returns
+        return np.array([np.mean([series[(lbl, t)][s] for t in TICKERS], axis=0)
+                         for s in range(len(series[(lbl, TICKERS[0])]))])
+
+    def seed_stacked(store, lbl):   # (n_seeds, n_stock_days)
+        return np.array([np.concatenate([store[(lbl, t)][s] for t in TICKERS])
+                         for s in range(len(store[(lbl, TICKERS[0])]))])
+
+    Pa, Pb = seed_port(A), seed_port(Bl)
+    Ra, Rb = seed_stacked(series, A), seed_stacked(series, Bl)
+    Ea, Eb = seed_stacked(expo, A), seed_stacked(expo, Bl)
+    srows = []
+    for stat_name, stat in [("sharpe", sharpe), ("max_drawdown", max_drawdown),
+                            ("total_return", total_return)]:
+        srows.append({"test": "seed_permutation", "level": "portfolio", "regime": "ALL", "stat": stat_name,
+                      **seed_permutation_test([stat(r) for r in Pa], [stat(r) for r in Pb])})
+        srows.append({"test": "hierarchical_bootstrap", "level": "portfolio", "regime": "ALL",
+                      "stat": stat_name, **hierarchical_bootstrap(Pa, Pb, stat, 3000, 10)})
+    for reg in REGIMES:
+        m = reg_all == reg
+        for stat_name, Xa, Xb, f in [("mean_exposure", Ea, Eb, lambda x: x.mean()),
+                                     ("mean_daily_bp", Ra, Rb, lambda x: x.mean() * 1e4)]:
+            srows.append({"test": "seed_permutation", "level": "stock-days", "regime": reg, "stat": stat_name,
+                          **seed_permutation_test([f(x[m]) for x in Xa], [f(x[m]) for x in Xb])})
+            srows.append({"test": "hierarchical_bootstrap", "level": "stock-days", "regime": reg,
+                          "stat": stat_name, **hierarchical_bootstrap(Xa[:, m], Xb[:, m], f, 3000, 10)})
+    st = pd.DataFrame(srows)
+    st.to_csv(f"{OUT}/seed_tests.csv", index=False)
+    print(f"\nSeed-level tests, adaptive - blind ({len(Pa)} vs {len(Pb)} seeds).")
+    print("seed_permutation: diff = mean of per-seed values; hierarchical_bootstrap: seeds + day blocks resampled")
+    print(st.round(4).to_string(index=False))
 
 
 if __name__ == "__main__":

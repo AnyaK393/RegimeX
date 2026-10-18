@@ -13,6 +13,7 @@ from strategies import (
     arima_signals, fit_xgboost, xgboost_signals,
 )
 from metrics import summarize, regime_summary, daily_returns, paired_bootstrap, sharpe, total_return
+from build_multistock import features, label as regime_label
 
 # ============================================================
 # REGIMEX - WALK-FORWARD VALIDATION
@@ -26,15 +27,17 @@ from metrics import summarize, regime_summary, daily_returns, paired_bootstrap, 
 #
 # and every strategy (Buy & Hold, ARIMA, XGBoost, PPO regime-blind,
 # PPO regime-adaptive) is refit on the fold's train data and evaluated
-# on the fold's test year. Regime labels are causal, so no fold sees
-# any information from its future.
+# on the fold's test year. Regime labels are re-derived per fold: KMeans,
+# its scaler and the cluster roles are refitted on the fold's train rows
+# only (build_multistock.label), and the High_Volatility P90 rule is
+# causal, so no fold sees any information from its future.
 #
 # PPO uses fewer timesteps per fold than the main run to keep the total
 # compute manageable; results are therefore a robustness check on the
 # adaptive-vs-blind conclusion, not a replacement for the main run.
 # ============================================================
 
-DATA_PATH = "data/processed/RELIANCE_regimes.csv"
+TICKER = "RELIANCE"
 OUT = "results"
 
 parser = argparse.ArgumentParser()
@@ -61,11 +64,12 @@ def train_ppo(train_df, adaptive, seed, timesteps):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    df = pd.read_csv(DATA_PATH, parse_dates=["Date"]).sort_values("Date").reset_index(drop=True)
+    feats = features(TICKER)
 
     fold_rows, regime_rows, oos = [], [], {}
 
     for year in args.test_years:
+        df = regime_label(feats, fit_end=f"{year - 1}-12-31")
         train_df = df[df["Date"] < f"{year}-01-01"].reset_index(drop=True)
         test_df = df[(df["Date"] >= f"{year}-01-01") & (df["Date"] < f"{year + 1}-01-01")].reset_index(drop=True)
         if len(test_df) < 20:

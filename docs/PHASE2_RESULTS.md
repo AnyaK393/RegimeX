@@ -92,7 +92,8 @@ the scaled-observation variant, which did not improve results.
 - The validation split has only 9 High_Volatility days, so validation regime tests (and their bootstrap intervals) are not meaningful.
 - Walk-forward PPO used 150k steps and one seed per fold; it is a robustness check, not a full replication.
 - Seed-to-seed variance is large (Sharpe std about 0.1-0.2), comparable to the effects being measured.
-- The base Normal_Market / Weak_Bear labels for RELIANCE come from a KMeans fitted on the full 2015-2025 sample, so only the High_Volatility override is strictly causal. The four additional stocks (section 9) fit KMeans on the train period only.
+- The base Normal_Market / Weak_Bear labels for RELIANCE used for sections 3-9 (and the v3 gamma 3.0 / walk-forward selection runs in section 10) came from a KMeans fitted on the full 2015-2025 sample, so only the High_Volatility override was strictly causal. RELIANCE has since been relabelled with a train-only KMeans (end of section 10); only the gamma 0.75 v3 agents were retrained on it.
+- In all walk-forward folds the KMeans was fitted on data to 2022-10-25, so folds with test years before 2023 still see clustering fitted partly on their own test year. A per-fold KMeans refit would remove this.
 - Pooling five stocks (section 9) was tried to address the small-data problem; the conclusion did not change.
 
 ## 9. Extension: agents trained on all five stocks
@@ -231,15 +232,54 @@ i.e. selection on 2019-2023 folds did not transfer, consistent with weak, noisy 
 statistically supported out-of-sample benefit of regime-conditioned reward over an equal-average-risk-aversion blind agent.** Both the
 default (gamma 3.0) and the selected (gamma 0.75) results are reported; the pre-registered choice is the latter.
 
+**Update (2026-10-18): re-run of the pre-registered gamma_base = 0.75 setting on causal RELIANCE labels.** RELIANCE is now
+built by `src/build_multistock.py` like the other four stocks (KMeans fitted on the train period only). 39 of 2,617 RELIANCE days
+change label (train 27, validation 10, test 2), all Normal_Market <-> Weak_Bear; no High_Volatility day changes and the other four
+stocks are unchanged. The six gamma 0.75 agents were retrained (1M steps, seeds 0-2) and evaluated on the test split once; nothing
+was tuned. The walk-forward selection itself was **not** re-run on the new labels (gamma 0.75 is kept as the pre-registered choice), and
+the v1/v2 and gamma 3.0 models still come from the old labels.
+
+| Strategy (five-stock portfolio, test) | Return | Sharpe | Max drawdown | Previous run (old labels): Sharpe / max DD |
+|---|---|---|---|---|
+| Buy & Hold | +10.2 % | 0.52 | -15.3 % | 0.52 / -15.3 % |
+| Constant 50 % | +5.4 % | 0.50 | -8.1 % | 0.50 / -8.1 % |
+| PPO-v3 regime-blind (gamma 0.75) | +0.6 % | 0.05 | -9.6 % | 0.12 / -11.2 % |
+| PPO-v3 regime-adaptive (gamma 0.75) | +2.0 % | 0.17 | -11.6 % | 0.13 / -11.8 % |
+
+Adaptive minus blind: Sharpe +0.09 [-0.24, +0.43], p = 0.57 (previously -0.04, p = 0.79); max drawdown p = 0.18; total return p = 0.63.
+Seed-to-seed Sharpe std is 0.27 (adaptive) and 0.28 (blind), three times the gap. Versus the simple baselines, the adaptive agent's
+Sharpe is not significantly different from Buy & Hold (p = 0.14) or Constant 50 % (p = 0.15); its drawdown is significantly *deeper* than
+Constant 50 % (-11.6 % vs -8.1 %, p = 0.004) and only marginally shallower than Buy & Hold (p = 0.06).
+
+Mean exposure by regime (adaptive / blind): Normal_Market 0.80 / 0.63 (p < 0.001), Weak_Bear 0.54 / 0.52 (p = 0.35),
+High_Volatility **0.60 / 0.40** (p < 0.001). The High_Volatility effect has **reversed sign** relative to the previous run
+(0.48 / 0.56, p = 0.004): the adaptive agent, whose High_Volatility gamma (4.5) is more than twice the blind gamma (1.93), now holds *more* in
+High_Volatility, not less. Since 39 relabelled days out of ~9,150 pooled training bars cannot plausibly reverse a real effect, this shows the
+High_Volatility exposure difference is driven by seed / training noise (per-seed std of High_Volatility exposure 0.17-0.19, as large as the gap).
+The block bootstrap resamples days of the seed-averaged series and does not capture this seed variance, so its small p-values for exposure
+differences overstate certainty. **The previous "one clean regime effect" (adaptive de-risks more in High_Volatility, p = 0.004) is withdrawn.**
+The overall conclusion is unchanged: no statistically supported out-of-sample benefit of regime-conditioned reward. Outputs:
+`results/v3g0.75_test/` (the previous files remain in git history).
+
+**Phase 2 plan, fixed before the 10-seed test evaluation (written 2026-10-18).** Configuration unchanged (gamma_base 0.75, 1M steps,
+causal labels); seeds 3-9 added so each arm has 10 seeds. The test split is evaluated once with all 20 models. Pre-specified analysis:
+
+1. **Primary test:** two-sided permutation test (20,000 label shuffles) on per-seed equal-weight portfolio Sharpe, adaptive (10) vs blind (10); alpha 0.05.
+   The training seed is the unit of replication (`metrics.seed_permutation_test`).
+2. **Secondary:** hierarchical bootstrap (resample seeds within each arm, then common 10-day circular blocks; 3,000 replicates;
+   `metrics.hierarchical_bootstrap`) for Sharpe, drawdown, total return, and per-regime exposure and daily return.
+3. Per-regime exposure claims require the seed-level permutation test to agree; the existing day-level bootstrap (`bootstrap.csv`) is still
+   reported but labelled as ignoring seed variance.
+4. No hyper-parameter is changed after seeing the result, whatever it is.
+
 ## 11. Reproducing
 
 ```
-python src/regime_relabel.py
+python src/build_multistock.py                # causal labels for all five stocks (replaces regime_relabel.py)
 python src/train_ppo.py --seed 0            # adaptive; add --blind, --scaled as needed
 python src/evaluate.py                       # tables, bootstrap, figures -> results/
 python src/walk_forward.py
 python src/explain_shap.py
-python src/build_multistock.py                # other four stocks
 python src/train_pooled.py --scaled --seed 0  # add --blind for the blind agent
 python src/evaluate_pooled.py
 python src/train_pooled.py --exposure --scaled --seed 0   # v3; add --blind for the blind agent

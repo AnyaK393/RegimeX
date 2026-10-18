@@ -12,8 +12,7 @@ Headline result (honest): **no configuration shows a statistically supported out
 
 | Goal | Script |
 |---|---|
-| Regime labels (RELIANCE) | `src/regime_relabel.py` (reads a saved copy of the KMeans labels, so it is idempotent) |
-| Regime labels (other four stocks) | `src/build_multistock.py` |
+| Regime labels (all five stocks) | `src/build_multistock.py [TICKER ...]` (train-only KMeans + causal P90 rule). `src/regime_relabel.py` is the old RELIANCE path (full-sample KMeans); do not use it. |
 | v1 env (BUY/HOLD/SELL) | `src/trading_env.py` |
 | v3 env (target exposure, mean-variance reward) | `src/exposure_env.py` |
 | Train | `src/train_ppo.py` (RELIANCE), `src/train_pooled.py` (five stocks; add `--exposure --scaled --gamma-base X` for v3) |
@@ -34,7 +33,9 @@ Headline result (honest): **no configuration shows a statistically supported out
 
 * Regime-adaptive vs blind differences are small relative to noise; the test window (393 days/stock) is short. More history or more stocks is the most direct lever.
 * Agents are over-cautious; constant 50 % exposure beats them on Sharpe in the test window. Ideas: a reward that targets Sharpe/Sortino directly, an exposure floor, or an ensemble over seeds.
-* RELIANCE base KMeans labels were fitted on the full sample (mild look-ahead). Refit on the train period only (as `build_multistock.py` does) and re-run everything.
+* RELIANCE labels are now causal (train-only KMeans; 39 days changed) and the pre-registered v3 gamma 0.75 agents were retrained on them (`docs/PHASE2_RESULTS.md`, end of section 10). Conclusion unchanged; the earlier "adaptive de-risks more in High_Volatility" result did not replicate and is withdrawn. **Still on the old labels:** `models/ppo_regimex`, `models/ppo_pooled`, `models/ppo_pooled_v3` (gamma 3.0) and `results/v3_select`. Their observations include the regime, so re-evaluating them now mixes old models with new labels; retrain before re-evaluating.
+* Walk-forward folds use KMeans fitted to 2022-10-25, so pre-2023 folds are labelled partly from their own test year. Refit KMeans per fold for strictly causal walk-forward claims.
+* Bootstrap p-values ignore seed variance (they resample days of the seed-averaged series). Use more seeds and report per-seed spread, or a seed-level test, for behavioural claims.
 * High_Volatility is thin in validation (9 days for RELIANCE); use walk-forward folds for regime-specific claims.
 * Possible extensions: LSTM / recurrent policies (the GPU could matter there; the installed PyTorch is the CPU build), transaction-cost sensitivity, other markets, a regime-transition feature, SAC/DQN comparison.
 

@@ -170,3 +170,77 @@ def paired_bootstrap(
         "p_value": float(min(p, 1.0)),
         "n":       n,
     }
+
+
+# ------------------------------------------------------------
+# Seed-aware significance testing
+# ------------------------------------------------------------
+#
+# paired_bootstrap() resamples market days of ONE return series per
+# strategy (for PPO: the seed-averaged series). It therefore ignores
+# seed-to-seed variance, which for these agents is as large as the
+# effects being measured. The two tests below treat the training seed
+# as the unit of replication.
+
+def seed_permutation_test(a, b, n_perm=20000, seed=0) -> dict:
+    """
+    Two-sample permutation test on per-seed metric values.
+    a, b: one value per training seed (e.g. portfolio Sharpe of each seed).
+    Statistic: mean(a) - mean(b). Seeds are exchangeable under H0, so seed
+    labels are shuffled between the two groups. Two-sided p-value with the
+    +1 correction. Also returns a 95% CI for the mean difference from
+    resampling seeds with replacement within each group.
+    """
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    na, nb = len(a), len(b)
+    if na < 2 or nb < 2:
+        return {"diff": np.nan, "ci_low": np.nan, "ci_high": np.nan, "p_value": np.nan,
+                "n_a": na, "n_b": nb}
+    rng = np.random.default_rng(seed)
+    obs = a.mean() - b.mean()
+    pooled = np.concatenate([a, b])
+    perm = np.empty(n_perm)
+    for i in range(n_perm):
+        p = rng.permutation(pooled)
+        perm[i] = p[:na].mean() - p[na:].mean()
+    p_value = (np.sum(np.abs(perm) >= abs(obs) - 1e-12) + 1) / (n_perm + 1)
+    boot = (rng.choice(a, (n_perm, na)).mean(1) - rng.choice(b, (n_perm, nb)).mean(1))
+    lo, hi = np.percentile(boot, [2.5, 97.5])
+    return {"diff": float(obs), "ci_low": float(lo), "ci_high": float(hi),
+            "p_value": float(p_value), "n_a": na, "n_b": nb}
+
+
+def hierarchical_bootstrap(
+    R_a, R_b, stat, n_boot=5000, block=10, seed=0,
+) -> dict:
+    """
+    Two-level bootstrap of stat(mean_seeds(R_a)) - stat(mean_seeds(R_b)).
+    R_a, R_b: arrays of shape (n_seeds, n_days), aligned on the same days.
+    Each replicate (1) resamples seeds with replacement within each group,
+    (2) averages the resampled seeds' daily series, and (3) applies one
+    common circular-block resample of days to both groups. The interval
+    therefore reflects both training-seed noise and market-day noise.
+    Two-sided p-value as in paired_bootstrap().
+    """
+    R_a, R_b = np.atleast_2d(np.asarray(R_a, float)), np.atleast_2d(np.asarray(R_b, float))
+    n = R_a.shape[1]
+    assert n == R_b.shape[1], "series must be aligned"
+    if n < 5:
+        return {"diff": np.nan, "ci_low": np.nan, "ci_high": np.nan, "p_value": np.nan, "n": n}
+    rng = np.random.default_rng(seed)
+    ka, kb = R_a.shape[0], R_b.shape[0]
+    diffs = np.empty(n_boot)
+    for i in range(n_boot):
+        ra = R_a[rng.integers(0, ka, ka)].mean(0)
+        rb = R_b[rng.integers(0, kb, kb)].mean(0)
+        idx = _block_indices(n, min(block, n), rng)
+        diffs[i] = stat(ra[idx]) - stat(rb[idx])
+    lo, hi = np.percentile(diffs, [2.5, 97.5])
+    p = 2 * min(np.mean(diffs <= 0), np.mean(diffs >= 0))
+    return {
+        "diff":    float(stat(R_a.mean(0)) - stat(R_b.mean(0))),
+        "ci_low":  float(lo),
+        "ci_high": float(hi),
+        "p_value": float(min(p, 1.0)),
+        "n":       n,
+    }
