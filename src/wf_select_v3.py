@@ -14,6 +14,7 @@ from exposure_env import (
 )
 from strategies import rollout, ppo_policy
 from metrics import sharpe, total_return, max_drawdown, REGIMES
+from build_multistock import features, label as regime_label
 
 # ============================================================
 # REGIMEX - WALK-FORWARD HYPER-PARAMETER SELECTION FOR v3
@@ -25,6 +26,11 @@ from metrics import sharpe, total_return, max_drawdown, REGIMES
 # gamma from these results never touches the 2024-06+ test set.
 # Results are written to results/v3_select/<job>.json and aggregated by
 # wf_select_report.py.
+#
+# --causal refits KMeans per fold on rows up to 31 Dec (year-1) only
+# (build_multistock.label) instead of reading the global *_regimes.csv,
+# whose clusters were fitted on data that overlaps the pre-2023 folds.
+# Causal results go to results/v3_select_causal/.
 # ============================================================
 
 TICKERS = ["RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY"]
@@ -35,9 +41,10 @@ parser.add_argument("--blind", action="store_true")
 parser.add_argument("--year", type=int, required=True)
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--timesteps", type=int, default=300_000)
+parser.add_argument("--causal", action="store_true")
 args = parser.parse_args()
 
-OUT = "results/v3_select"
+OUT = "results/v3_select_causal" if args.causal else "results/v3_select"
 os.makedirs(OUT, exist_ok=True)
 kind = "blind" if args.blind else "adaptive"
 job = f"g{args.gamma_base}_{kind}_{args.year}_s{args.seed}"
@@ -49,9 +56,12 @@ if os.path.exists(path):
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 
-data = {t: pd.read_csv(f"data/processed/{t}_regimes.csv", parse_dates=["Date"]).sort_values("Date")
-        for t in TICKERS}
 Y = args.year
+if args.causal:
+    data = {t: regime_label(features(t), fit_end=f"{Y - 1}-12-31") for t in TICKERS}
+else:
+    data = {t: pd.read_csv(f"data/processed/{t}_regimes.csv", parse_dates=["Date"]).sort_values("Date")
+            for t in TICKERS}
 train_dfs = [d[d["Date"] < f"{Y}-01-01"].reset_index(drop=True) for d in data.values()]
 test_dfs = {t: d[(d["Date"] >= f"{Y}-01-01") & (d["Date"] < f"{Y + 1}-01-01")].reset_index(drop=True)
             for t, d in data.items()}

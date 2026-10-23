@@ -30,7 +30,9 @@ DEFAULT_GAMMA_BASE = 3.0
 MARGIN = 0.05
 YEARS = [2019, 2020, 2021, 2022, 2023]
 
-rows = [json.load(open(p)) for p in glob.glob("results/v3_select/g*.json")]
+SRC = "results/v3_select_causal" if "--causal" in sys.argv else "results/v3_select"
+SUM = SRC + "_summary" if "--causal" in sys.argv else "results/v3_select_summary"
+rows = [json.load(open(p)) for p in glob.glob(f"{SRC}/g*.json")]
 df = pd.DataFrame(rows)
 print(f"{len(df)} job results")
 
@@ -98,10 +100,10 @@ print("mean:", diff.groupby("gamma_base").mean().round(3).to_dict(),
 print(f"\nBest adaptive mean Sharpe at gamma_base={best} ({ad[best]:.3f}); default {DEFAULT_GAMMA_BASE} = {ad[DEFAULT_GAMMA_BASE]:.3f}")
 print(f"==> SELECTED gamma_base = {chosen}")
 
-os.makedirs("results/v3_select_summary", exist_ok=True)
-summary.to_csv("results/v3_select_summary/grid_summary.csv", index=False)
-piv.to_csv("results/v3_select_summary/grid_by_fold.csv")
-base.to_csv("results/v3_select_summary/baselines_by_fold.csv", index=False)
+os.makedirs(SUM, exist_ok=True)
+summary.to_csv(f"{SUM}/grid_summary.csv", index=False)
+piv.to_csv(f"{SUM}/grid_by_fold.csv")
+base.to_csv(f"{SUM}/baselines_by_fold.csv", index=False)
 json.dump({"selected_gamma_base": chosen, "best_gamma_base": best,
            "adaptive_mean_sharpe": {str(k): float(v) for k, v in ad.items()}},
-          open("results/v3_select_summary/selection.json", "w"), indent=1)
+          open(f"{SUM}/selection.json", "w"), indent=1)

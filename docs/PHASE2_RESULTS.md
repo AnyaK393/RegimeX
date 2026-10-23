@@ -61,18 +61,20 @@ does not survive in the scaled variant.
 
 ## 6. Walk-forward validation (expanding window, test years 2021-2025, PPO 150k steps, 1 seed)
 
+Re-run 2026-10-23 with KMeans refitted per fold on rows up to 31 Dec of (year-1) (the earlier table used labels fitted on data
+overlapping the pre-2023 folds; it remains in git history).
+
 | Strategy | Mean total return | Mean Sharpe | Mean max DD |
 |---|---|---|---|
 | Buy & Hold | +10.9% | 0.59 | -17.2% |
-| PPO regime-adaptive | +1.7% | 0.12 | -3.0% |
-| PPO regime-blind | +1.5% | 0.11 | -8.2% |
-| XGBoost | -12.4% | -0.71 | -21.1% |
+| PPO regime-adaptive | +7.3% | 0.44 | -9.0% |
+| PPO regime-blind | +2.7% | 0.14 | -3.3% |
+| XGBoost | -9.8% | -0.51 | -19.9% |
 | ARIMA | -25.6% | -1.73 | -28.4% |
 
-Adaptive beat blind on Sharpe in 2 of 5 folds; pooled out-of-sample bootstrap
-of the difference: p = 0.88. In many folds the PPO agents stayed entirely in
-cash (Sharpe exactly 0). The 2021 and 2023 test years contain no
-High_Volatility days at all.
+Adaptive beat blind on Sharpe in 3 of 5 folds; pooled out-of-sample bootstrap of the difference: +0.18, 95 % CI [-1.08, +1.41],
+p = 0.77. The gap is mostly an artefact of agents sitting in cash: the blind agent was entirely in cash (Sharpe exactly 0) in 4 of 5
+folds, the adaptive agent in 2 of 5. With one seed and 150k steps this is a robustness check, not evidence of a regime effect.
 
 ## 7. Explainability (SHAP, adaptive raw agent, seed 0)
 
@@ -271,6 +273,47 @@ causal labels); seeds 3-9 added so each arm has 10 seeds. The test split is eval
 3. Per-regime exposure claims require the seed-level permutation test to agree; the existing day-level bootstrap (`bootstrap.csv`) is still
    reported but labelled as ignoring seed variance.
 4. No hyper-parameter is changed after seeing the result, whatever it is.
+
+**10-seed test result (evaluated once, 2026-10-23).** Equal-weight portfolio, mean over seeds:
+
+| Strategy | Seeds | Total return | Sharpe (seed std) | Max DD |
+|---|---|---|---|---|
+| Buy & Hold | - | 10.2 % | 0.52 | -15.3 % |
+| Constant 50 % | - | 5.4 % | 0.50 | -8.1 % |
+| Vol-target | - | 2.6 % | 0.20 | -14.2 % |
+| PPO-v3 regime-blind | 10 | 1.1 % | 0.09 (0.28) | -12.0 % |
+| PPO-v3 regime-adaptive | 10 | 0.5 % | 0.06 (0.29) | -11.5 % |
+
+1. **Primary:** seed permutation, adaptive - blind Sharpe = -0.03, 95 % CI [-0.27, +0.21], **p = 0.81**. Not significant.
+2. **Secondary:** hierarchical bootstrap Sharpe -0.04 [-0.39, +0.31], p = 0.79; drawdown p = 0.69; total return p = 0.81.
+3. Per-regime exposure (adaptive / blind): Normal 0.72 / 0.72, Weak_Bear 0.55 / 0.64, High_Volatility 0.44 / 0.43.
+   The day-level bootstrap calls the Weak_Bear gap significant (p < 0.001), but the seed-level test does not (p = 0.13), so by rule 3
+   no per-regime exposure claim is made. This is the over-confidence of day-level p-values noted above, now measured directly.
+
+With 10 seeds the earlier +0.09 Sharpe edge (3 seeds) disappears. **Final conclusion: no evidence that the regime-conditioned reward
+improves out-of-sample performance or changes behaviour beyond seed noise.** Both PPO agents trail Constant 50 % on Sharpe
+(adaptive vs Constant 50 %: -0.43, p = 0.016). Outputs: `results/v3g0.75_test/` (`seed_tests.csv` holds the seed-level tests).
+
+**Phase C plan, fixed before the causal re-run (written 2026-10-23).** The gamma_base selection grid (0.75 / 1.5 / 3.0 x adaptive / blind
+x 2019-2023 x seeds 0-1, 300k steps) is re-run with KMeans refitted per fold on rows up to 31 Dec of (year-1)
+(`wf_select_v3.py --causal`, output `results/v3_select_causal/`). The selection rule is unchanged (`wf_select_report.py`). If it picks a
+gamma_base other than 0.75, this is reported as a robustness finding only: the final agents are **not** retrained and the test split is
+**not** evaluated again. The v1 RELIANCE walk-forward (`walk_forward.py`, already per-fold KMeans since 9f7fbb3) is re-run to replace the
+section 6 table, which predates that fix.
+
+**Phase C result (causal per-fold labels, 60 jobs, all in `results/v3_select_causal_summary/`).** Causal relabelling changes 82 / 88
+RELIANCE test-year labels in the 2019 / 2020 folds and 1-8 in 2021-2023.
+
+| gamma_base | Adaptive Sharpe (old labels) | Blind Sharpe (old labels) | Adaptive Sharpe (causal) | Blind Sharpe (causal) | Adaptive - blind (causal) |
+|---|---|---|---|---|---|
+| 0.75 | 0.84 | 0.92 | **0.83** | 0.85 | -0.02 (wins 2/5 folds) |
+| 1.5 | 0.82 | 0.93 | 0.78 | 0.87 | -0.09 (2/5) |
+| 3.0 | 0.74 | 0.70 | 0.65 | 0.74 | -0.10 (2/5) |
+
+The rule again selects **gamma_base = 0.75** (0.83 vs default 0.65), so the final configuration stands and nothing is retrained.
+On causal folds the adaptive agent is behind the blind agent at every grid point, and Buy & Hold (1.06) and Constant 50 % (1.05)
+still beat every PPO setting. The adaptive agent does de-risk more in High_Volatility than in Normal_Market (0.57 vs 0.74 at 0.75;
+0.23 vs 0.59 at 3.0), so the reward shapes behaviour as designed, but it does not pay off in Sharpe.
 
 ## 11. Reproducing
 
